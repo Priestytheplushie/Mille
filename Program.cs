@@ -1,5 +1,3 @@
-﻿using System.Drawing;
-
 namespace Mille {
 	public class Program {
 		static void Main() {
