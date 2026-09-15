@@ -1,5 +1,4 @@
 # Project Overview
->This document is not very useful and should not be read. It's just used for the school project rubric
 
 **Mille** is a C# CLI text editor using regex for syntax highlighting.
 
