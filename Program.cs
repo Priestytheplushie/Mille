@@ -8,10 +8,13 @@ public class Program {
 
 			int line = 0;
 			int col = 0;
+			int window = 0;
 
 			while (true) {
-				Display(contents);
+				Display(contents, window, line, col);
 				ProcessInput(ref contents, ref line, ref col);
+				if (line < window) window = line;
+				else if (line > window + Console.WindowHeight) window = line - Console.WindowHeight;
 			}
 
 		}
@@ -21,8 +24,14 @@ public class Program {
 		}
 	}
 
-	static void Display(List<string> contents) {
-		// TODO
+	static void Display(List<string> contents, int window, int cursorline, int cursorcol) {
+		Console.Write("\x1b[H");
+		int lnlen = (int)Math.Log10((double)contents.Count) + 1;
+		for (int line = window; line < Math.Min(window + Console.WindowHeight, contents.Count); line++) {
+			string s = new(contents[line]);
+			Console.WriteLine("\x1b[7m" + line.ToString().PadRight(lnlen) + "\x1b[27m " + s + "\x1b[0K");
+		}
+		Console.Write("\x1b[0m\x1b[" + (cursorline+1).ToString() + ";" + (cursorcol+lnlen+2).ToString() + "H");
 	}
 
 	static void ProcessInput(ref List<string> contents, ref int line, ref int col) {
@@ -38,23 +47,30 @@ public class Program {
 						contents[line] += append;
 					}
 					else {
-						contents[line].Remove(col-1);
+						contents[line] = contents[line][..(col-1)] + contents[line][col..];
 						col--;
 					} break;
-				case ConsoleKey.Enter:
-					contents[++line] = ""; break;
+				case ConsoleKey.Enter: contents[++line] = ""; break;
 				case ConsoleKey.PageDown: line = Math.Min(line+40, contents.Count-1); break;
 				case ConsoleKey.PageUp: line = Math.Max(line-40, 0); break;
 				case ConsoleKey.End: col = contents[line].Length; break;
 				case ConsoleKey.Home: col = 0; break;
 				case ConsoleKey.LeftArrow:
 					if (col == 0) { line = Math.Max(line-1, 0); col = contents[line].Length; }
-					else col--; break;
+					else col--;
+					break;
 				case ConsoleKey.RightArrow:
 					if (col == contents[line].Length) { line = Math.Min(line+1, contents.Count-1); col = 0; }
-					else col++; break;
-				case ConsoleKey.UpArrow: line = Math.Max(line-1, 0); break;
-				case ConsoleKey.DownArrow: line = Math.Min(line+1, contents.Count-1); break;
+					else col++;
+					break;
+				case ConsoleKey.UpArrow:
+					line = Math.Max(line-1, 0);
+					col = Math.Min(col, contents[line].Length);
+					break;
+				case ConsoleKey.DownArrow:
+					line = Math.Min(line+1, contents.Count-1);
+					col = Math.Min(col, contents[line].Length);
+					break;
 				case ConsoleKey.Delete:
 					if (col == contents[line].Length) {
 						if (line < contents.Count-1) {
@@ -62,9 +78,9 @@ public class Program {
 							contents.RemoveAt(line+1);
 							contents[line] += append;
 						}
-					} else contents[line].Remove(col); break;
+					} else contents[line] = contents[line][..col] + contents[line][(col+1)..]; break;
 				default:
-					contents[line].Insert(col, ""+key.KeyChar);
+					contents[line] = contents[line].Insert(col, ""+key.KeyChar);
 					col++; break;
 			} break;
 			case ConsoleModifiers.Control: Console.Write("\a"); break; // TODO
