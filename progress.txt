@@ -1,5 +1,0 @@
-moon: working on input loop
-tyr: 
-odin: 
-thor: 
-frey: 
