@@ -3,7 +3,10 @@ using System.Text.RegularExpressions;
 namespace Mille;
 
 public class Program {
+
 	static void Main(string[] args) {
+		Rules rules = new(tab_count: 3);
+
 		if (args.Length > 0) {
 			string path = args[0];
 			string content = File.ReadAllText(path);
@@ -14,7 +17,7 @@ public class Program {
 			int window = 0;
 
 			while (true) {
-				Display(contents, window, line, col);
+				Display(rules, contents, window, line, col);
 				ProcessInput(ref contents, ref line, ref col, args[0]);
 				if (line < window) window = line;
 				else if (line > window + Console.WindowHeight) window = line - Console.WindowHeight;
@@ -27,19 +30,23 @@ public class Program {
 		}
 	}
 
-	static void Display(List<string> contents, int window, int cursorline, int cursorcol, List<(Regex, string)>? color_rules = null) {
-		if (color_rules == null) color_rules = new();
-		Console.Write("\x1b[H");
+	static void Display(Rules rules, List<string> contents, int window, int cursorline, int cursorcol) {
+		string write = "\x1b[H";
 		int lnlen = (int)Math.Log10((double)contents.Count) + 1;
 		for (int line = window; line < Math.Min(window + Console.WindowHeight, contents.Count); line++) {
-			string s = contents[line].Replace("\t","    ");
+			string s = contents[line].Replace("\t","".PadLeft(rules.TabCount));
 
 			List<(int, string?)> actions = new();
-			foreach (var (r, c) in color_rules) {
+			foreach (var (r, c) in rules.Colors) {
 				var matches = r.Matches(s);
-				foreach (Match match in matches) foreach (Group loc in match.Groups) foreach (Capture cap in loc.Captures) {
-					actions.Add((cap.Index, c));
-					actions.Add((cap.Index + cap.Length, null));
+				foreach (Match match in matches) {
+					if (match.Groups.Count > 1) foreach (Group loc in match.Groups.Cast<Group>().Skip(1)) foreach (Capture cap in loc.Captures) {
+						actions.Add((cap.Index, c));
+						actions.Add((cap.Index + cap.Length, null));
+					} else {
+						actions.Add((match.Index, c));
+						actions.Add((match.Index + match.Length, null));
+					}
 				}
 			}
 			actions.Sort((k1, k2) => k1.Item1.CompareTo(k2.Item1));
@@ -63,9 +70,11 @@ public class Program {
 				s = s1 + s[cur..];
 			}
 
-			Console.WriteLine("\x1b[7m" + line.ToString().PadRight(lnlen) + "\x1b[27m " + s + "\x1b[0K");
+			write += "\x1b[7m" + line.ToString().PadRight(lnlen) + "\x1b[27m " + s + "\x1b[0K\n";
 		}
-		Console.Write("\x1b[J\x1b[0m\x1b[" + (cursorline+1).ToString() + ";" + (cursorcol+lnlen+2).ToString() + "H");
+		int tabs_before_cursor = contents[cursorline].Remove(cursorcol).Count(c => c == '\t');
+		write += "\x1b[J\x1b[0m\x1b[" + (cursorline+1).ToString() + ";" + (cursorcol+lnlen+2 + (rules.TabCount-1)*tabs_before_cursor).ToString() + "H";
+		Console.Write(write); // only write once to prevent screen tear and visible cursor movement
 	}
 
 	static void ProcessInput(ref List<string> contents, ref int line, ref int col, string expath) {
@@ -92,22 +101,10 @@ public class Program {
 				case ConsoleKey.PageUp: line = Math.Max(line-40, 0); break;
 				case ConsoleKey.End: col = contents[line].Length; break;
 				case ConsoleKey.Home: col = 0; break;
-				case ConsoleKey.LeftArrow:
-					if (col == 0) { line = Math.Max(line-1, 0); col = contents[line].Length; }
-					else col--;
-					break;
-				case ConsoleKey.RightArrow:
-					if (col == contents[line].Length) { line = Math.Min(line+1, contents.Count-1); col = 0; }
-					else col++;
-					break;
-				case ConsoleKey.UpArrow:
-					line = Math.Max(line-1, 0);
-					col = Math.Min(col, contents[line].Length);
-					break;
-				case ConsoleKey.DownArrow:
-					line = Math.Min(line+1, contents.Count-1);
-					col = Math.Min(col, contents[line].Length);
-					break;
+				case ConsoleKey.LeftArrow: MoveLeft(contents, ref line, ref col); break;
+				case ConsoleKey.RightArrow: MoveRight(contents, ref line, ref col); break;
+				case ConsoleKey.UpArrow: MoveUp(contents, ref line, ref col); break;
+				case ConsoleKey.DownArrow: MoveDown(contents, ref line, ref col); break;
 				case ConsoleKey.Delete:
 					if (col == contents[line].Length) {
 						if (line < contents.Count-1) {
@@ -121,13 +118,68 @@ public class Program {
 					contents[line] = contents[line].Insert(col, ""+key.KeyChar);
 					col++; break;
 			} break;
+			case ConsoleModifiers.Control: switch (key.Key) {
+				case ConsoleKey.RightArrow:
+					while (MoveRight(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
+					while (MoveRight(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
+					break;
+				case ConsoleKey.LeftArrow:
+					while (MoveLeft(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
+					while (MoveLeft(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
+					break;
+				default: Console.Write("\a"); break;
+			} break;
 			default: Console.Write("\a"); break;
 		}
 	}
 
+	static bool MoveLeft(List<string> contents, ref int line, ref int col) {
+		if (col == 0) {
+			if (MoveUp(contents, ref line, ref col)) { col = contents[line].Length; return true; }
+			return false;
+		} else col--;
+		return true;
+	}
+
+	static bool MoveRight(List<string> contents, ref int line, ref int col) {
+		if (col == contents[line].Length) {
+			if (MoveDown(contents, ref line, ref col)) { col = 0; return true; }
+			return false;
+		} else col++;
+		return true;
+	}
+
+	static bool MoveUp(List<string> contents, ref int line, ref int col) {
+		if (line == 0) { col = 0; return false; }
+		else {
+			line--;
+			col = Math.Min(col, contents[line].Length);
+			return true;
+		}
+	}
+
+	static bool MoveDown(List<string> contents, ref int line, ref int col) {
+		if (line == contents.Count - 1) { col = contents[line].Length; return false; }
+		else {
+			line++;
+			col = Math.Min(col, contents[line].Length);
+			return true;
+		}
+	}
+
 	static void Exit(List<string> lines, string fp) {
-		File.WriteAllLines(fp, lines);
+		File.WriteAllText(fp, string.Join(Environment.NewLine, lines));
 		Console.Write("\x1b[2J\x1b[H\x1b[3J");
 		Environment.Exit(0);
+	}
+}
+
+class Rules {
+	public List<(Regex, string)> Colors { get; set; }
+	public int TabCount { get; set; }
+
+	public Rules(List<(Regex, string)>? colors = null, int tab_count = 4) {
+		this.Colors = colors is null ? new() : colors;
+		this.TabCount = tab_count;
 	}
 }
