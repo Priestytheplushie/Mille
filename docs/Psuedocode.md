@@ -3,7 +3,7 @@
 ## Reading Files
 Opens the passed file (first argument) into a list for use in the rendering loop 
 ```python
-def main(*args)
+def main(sys.argv)
   # Checks if any arguments are passed 
   if args.length > 0:
     path = args[0] # Get the file path as the first passed argument 
