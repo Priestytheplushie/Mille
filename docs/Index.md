@@ -4,6 +4,7 @@ Documentation for this project is mainly for the school assignment, and as such 
 * [Project Overview](Overview.md)
 * [Psuedocode](Psuedocode.md)
 * [Flowcharts](assets/flowcharts)
+* [Dev Team Roles](Roles.md)
 
 Not on GitHub: 
 >These you may not be able to access as they are school managed...
