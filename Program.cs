@@ -22,10 +22,34 @@ public class Program {
 			(new(@"(TODO:?)"), "\x1b[37m\x1b[48;2;30;180;180m"),
 			(new(@" +$"), "\x1b[42m\x1b[39m")
 		]), tab_count: 3);
+    
+    try {
+        if (args.Length == 0) {
+            Console.WriteLine("Available Arguments:");
+            Console.WriteLine("<filename> The file to open");
+            return;
+        }
 
-		if (args.Length > 0) {
-			string path = args[0];
-			string content = File.ReadAllText(path);
+        string path = args[0];
+        string content;
+
+        if (File.Exists(path)) {
+            content = File.ReadAllText(path);
+        }
+        else {
+            if (Directory.Exists(path)) {
+                Console.Error.WriteLine("The specified path is a directory, not a file.");
+                return;
+            }
+
+            content = string.Empty;
+        }
+        OpenFileLoop(content); }
+		catch (UnauthorizedAccessException) {
+			Console.Error.WriteLine("Permission denied: unable to access the specified path.");
+		}
+	}
+	static void OpenFileLoop(string content) {
 			List<string> contents = new(content.Split("\n"));
 
 			int line = 0;
@@ -39,14 +63,7 @@ public class Program {
 				if (line < window) window = line;
 				else if (line > window + Console.WindowHeight - rules.Margin - 1) window = line - Console.WindowHeight + rules.Margin + 1;
 			}
-
-		}
-		else {
-			Console.WriteLine("Avaliable Arguements:");
-			Console.WriteLine("<filename> The file to open");
-		}
-	}
-
+  }
 	static void Display(Rules rules, List<string> contents, int window, int cursorline, int cursorcol) {
 		string write = "\x1b[H\x1b[3J";
 		int lnlen = (int)Math.Log10((double)contents.Count) + 1;
