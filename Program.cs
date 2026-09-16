@@ -1,29 +1,52 @@
 namespace Mille;
 public class Program {
 	static void Main(string[] args) {
-		if (args.Length > 0) {
-			string path = args[0];
-			string content = File.ReadAllText(path);
-			List<string> contents = new(content.Split("\n"));
+    try {
+        if (args.Length == 0)
+        {
+            Console.WriteLine("Available Arguments:");
+            Console.WriteLine("<filename> The file to open");
+            return;
+        }
 
-			int line = 0;
-			int col = 0;
-			int window = 0;
+        string path = args[0];
+        string content;
 
-			while (true) {
-				Display(contents, window, line, col);
-				ProcessInput(ref contents, ref line, ref col);
-				if (line < window) window = line;
-				else if (line > window + Console.WindowHeight) window = line - Console.WindowHeight;
-			}
+        if (File.Exists(path))
+        {
+            content = File.ReadAllText(path);
+        }
+        else
+        {
+            if (Directory.Exists(path))
+            {
+                Console.Error.WriteLine("The specified path is a directory, not a file.");
+                return;
+            }
 
-		}
-		else {
-			Console.WriteLine("Avaliable Arguements:");
-			Console.WriteLine("<filename> The file to open");
+            content = string.Empty;
+        }
+
+        OpenFileLoop(content);
+    }
+		catch (UnauthorizedAccessException)
+		{
+			Console.Error.WriteLine("Permission denied: unable to access the specified path.");
 		}
 	}
+	static void OpenFileLoop(string content) {
+		List<string> contents = new(content.Split("\n"));
+		int line = 0;
+		int col = 0;
+		int window = 0;
 
+		while (true) {
+			Display(contents, window, line, col);
+			ProcessInput(ref contents, ref line, ref col);
+			if (line < window) window = line;
+			else if (line > window + Console.WindowHeight) window = line - Console.WindowHeight;
+		}
+	}
 	static void Display(List<string> contents, int window, int cursorline, int cursorcol) {
 		Console.Write("\x1b[H");
 		int lnlen = (int)Math.Log10((double)contents.Count) + 1;
