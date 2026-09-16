@@ -54,7 +54,7 @@ public class Program {
 
 			while (true) {
 				Display(rules, contents, window, line, col);
-				ProcessInput(ref contents, ref line, ref col, ref true_col, arg[0]);
+				ProcessInput(ref contents, ref line, ref col, ref true_col, args[0]);
 				if (line < window) window = line;
 				else if (line > window + Console.WindowHeight - rules.Margin - 1) window = line - Console.WindowHeight + rules.Margin + 1;
 			}
