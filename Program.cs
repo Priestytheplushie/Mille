@@ -106,7 +106,9 @@ public class Program {
 		}
 		int tabs_before_cursor = contents[cursorline].Remove(cursorcol).Count(c => c == '\t');
 		write += "\x1b[J\x1b[0m\x1b[" + (cursorline-window+1).ToString() + ";" + (cursorcol+lnlen+2 + (rules.TabCount-1)*tabs_before_cursor).ToString() + "H";
+		Console.CursorVisible = false;
 		Console.Write(write); // only write once to prevent screen tear and visible cursor movement
+		Console.CursorVisible = true;
 	}
 
 	static void ProcessInput(ref List<string> contents, ref int line, ref int col, ref int true_col, ref int window, string expath) {
