@@ -2,8 +2,7 @@ namespace Mille;
 public class Program {
 	static void Main(string[] args) {
     try {
-        if (args.Length == 0)
-        {
+        if (args.Length == 0) {
             Console.WriteLine("Available Arguments:");
             Console.WriteLine("<filename> The file to open");
             return;
@@ -12,12 +11,10 @@ public class Program {
         string path = args[0];
         string content;
 
-        if (File.Exists(path))
-        {
+        if (File.Exists(path)) {
             content = File.ReadAllText(path);
         }
-        else
-        {
+        else {
             if (Directory.Exists(path))
             {
                 Console.Error.WriteLine("The specified path is a directory, not a file.");
@@ -26,11 +23,8 @@ public class Program {
 
             content = string.Empty;
         }
-
-        OpenFileLoop(content);
-    }
-		catch (UnauthorizedAccessException)
-		{
+        OpenFileLoop(content); }
+		catch (UnauthorizedAccessException) {
 			Console.Error.WriteLine("Permission denied: unable to access the specified path.");
 		}
 	}
