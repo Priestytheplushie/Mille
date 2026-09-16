@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Text.RegularExpressions;
 
 namespace Mille;
@@ -23,26 +24,59 @@ public class Program {
 			(new(@" +$"), "\x1b[42m\x1b[39m")
 		]), tab_count: 3);
 
-	try {
-		if (args.Length == 0) {
-			Console.WriteLine("Available Arguments:");
-			Console.WriteLine("<filename> The file to open");
-			return;
-		}
-
-		string path = args[0];
-		string content;
-
-		if (File.Exists(path)) {
-			content = File.ReadAllText(path);
-		}
-		else {
-			if (Directory.Exists(path)) {
-				Console.Error.WriteLine("The specified path is a directory, not a file.");
+		try {
+			if (args.Length == 0) {
+				Console.WriteLine("usage: mille <filepath> or mille <language> --config");
+				Console.WriteLine();
+				Console.WriteLine("To open a file you can use\nmille <filepath>");
+				Console.WriteLine();
+				Console.WriteLine("To edit regular expression rules for programming languages: \nmille --language:<language> --config");
+				Console.WriteLine();
+				Console.WriteLine("To edit general configuration languages:\nmille --config");
+				Console.WriteLine();
+				Console.WriteLine("Use [esc] to exit the current open editor");
 				return;
 			}
-			content = string.Empty;
-		}
+
+			bool isConfig = false;
+			string? selectedConfig = null;
+
+			for (int i = 0; i < args.Length; i++) {
+				if (string.Equals(args[i], "--config", StringComparison.OrdinalIgnoreCase)) {
+					isConfig = true;
+				}
+				else if (args[i].StartsWith("--language:", StringComparison.OrdinalIgnoreCase)) {
+					selectedConfig = args[i].Substring("--language:".Length);
+				}
+			}
+
+			if (isConfig && selectedConfig != null) {
+				Console.WriteLine($"Config Language passed {selectedConfig}");
+				// TODO: Handle Configuration 
+				return;
+			}
+			if (!isConfig && selectedConfig != null) {
+				Console.WriteLine("usage: mille --config --language:<language>");
+				return;
+			}
+			if (isConfig && selectedConfig == null) {
+				Console.WriteLine("Config request passed");
+				//TODO: Handle general configuration
+				return;
+			}
+
+			string path = args[0];
+			string content;
+			if (File.Exists(path)) {
+				content = File.ReadAllText(path);
+			}
+			else {
+				if (Directory.Exists(path)) {
+					Console.Error.WriteLine("The specified path is a directory, not a file.");
+					return;
+				}
+				content = string.Empty;
+			}
 
 			List<string> contents = new(content.Split("\n"));
 			int line = 0;
@@ -56,10 +90,12 @@ public class Program {
 				if (line < window) window = line;
 				else if (line > window + Console.WindowHeight - rules.Margin - 1) window = line - Console.WindowHeight + rules.Margin + 1;
 			}
-		} catch (UnauthorizedAccessException) {
+		}
+		catch (UnauthorizedAccessException) {
 			Console.Error.WriteLine("Permission denied: unable to access the specified path.");
 		}
 	}
+
 	static void Display(Rules rules, List<string> contents, int window, int cursorline, int cursorcol) {
 		string write = "\x1b[H\x1b[3J";
 		int lnlen = (int)Math.Log10((double)contents.Count) + 1;
