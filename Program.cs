@@ -3,9 +3,24 @@ using System.Text.RegularExpressions;
 namespace Mille;
 
 public class Program {
-
 	static void Main(string[] args) {
-		Rules rules = new(tab_count: 3);
+		Rules rules = new(colors: new ([
+			(new(@"\b(bool|byte|sbyte|char|decimal|double|float|IntPtr|int|uint|long|ulong|object|short|ushort|string|base|this|var|void)\b"), "\x1b[38;2;30;200;50m"),
+			(new(@"\b(alias|as|case|catch|checked|default|do|dynamic|else|finally|for|fixed|foreach|goto"
+				+@"|if|is|lock|new|null|return|switch|throw|try|unchecked|while|abstract|async|class|const"
+				+@"|delegate|enum|event|explicit|extern|get|implicit|in|internal|interface|namespace"
+				+@"|operator|out|override|params|partial|private|protected|public|readonly|ref|sealed|set"
+				+@"|sizeof|stackalloc|static|struct|typeof|unsafe|using|value|virtual|volatile|yield|from"
+				+@"|where|select|group|info|orderby|join|let|in|on|equals|by|ascending|descending)\b"), "\x1b[38;2;30;180;180m"),
+			(new(@"\b(true|false)\b"), "\x1b[38;2;120;255;255m\x1b[49m"),
+			(new(@"\b(break|continue)\b"), "\x1b[38;2;255;50;50m\x1b[49m"),
+			(new(@"[+\-*<=>?:!~%&|]"), "\x1b[38;2;200;20;30m"),
+			(new(@"\b(0|[1-9][0-9._]+|0x[A-Fa-f0-9_]+|0b[01_]+|0[0-7]+)\b"), "\x1b[38;2;35;50;200m\x1b[49m"),
+			(new("^.*?(?:(\".*?\").*?)+$"), "\x1b[38;2;160;130;30m\x1b[49m"),
+			(new(@"/{2}.*$"), "\x1b[38;2;128;128;128m\x1b[49m"),
+			(new(@"\t "), "\x1b[41m\x1b[39m"),
+			(new(@"(TODO:?)"), "\x1b[37m\x1b[48;2;30;180;180m")
+		]), tab_count: 3);
 
 		if (args.Length > 0) {
 			string path = args[0];
@@ -15,12 +30,13 @@ public class Program {
 			int line = 0;
 			int col = 0;
 			int window = 0;
+			int true_col = 0;
 
 			while (true) {
 				Display(rules, contents, window, line, col);
-				ProcessInput(ref contents, ref line, ref col, args[0]);
+				ProcessInput(ref contents, ref line, ref col, ref true_col, args[0]);
 				if (line < window) window = line;
-				else if (line > window + Console.WindowHeight) window = line - Console.WindowHeight;
+				else if (line > window + Console.WindowHeight - rules.Margin - 1) window = line - Console.WindowHeight + rules.Margin + 1;
 			}
 
 		}
@@ -31,10 +47,10 @@ public class Program {
 	}
 
 	static void Display(Rules rules, List<string> contents, int window, int cursorline, int cursorcol) {
-		string write = "\x1b[H";
+		string write = "\x1b[H\x1b[3J";
 		int lnlen = (int)Math.Log10((double)contents.Count) + 1;
-		for (int line = window; line < Math.Min(window + Console.WindowHeight, contents.Count); line++) {
-			string s = contents[line].Replace("\t","".PadLeft(rules.TabCount));
+		for (int line = window; line < Math.Min(window + Console.WindowHeight - rules.Margin, contents.Count); line++) {
+			string s = contents[line];
 
 			List<(int, string?)> actions = new();
 			foreach (var (r, c) in rules.Colors) {
@@ -49,7 +65,7 @@ public class Program {
 					}
 				}
 			}
-			actions.Sort((k1, k2) => k1.Item1.CompareTo(k2.Item1));
+			actions.Sort((k1, k2) => k1.Item1 < k2.Item1 ? -1 : k1.Item1 > k2.Item1 ? 1 : k1.Item2 is null ? k2.Item2 is null ? 0 : -1 : k2.Item2 is null ? 1 : 0 );
 
 			if (actions.Count != 0) {
 				string s1 = "";
@@ -70,14 +86,16 @@ public class Program {
 				s = s1 + s[cur..];
 			}
 
+			s = s.Replace("\t","".PadLeft(rules.TabCount));
+
 			write += "\x1b[7m" + line.ToString().PadRight(lnlen) + "\x1b[27m " + s + "\x1b[0K\n";
 		}
 		int tabs_before_cursor = contents[cursorline].Remove(cursorcol).Count(c => c == '\t');
-		write += "\x1b[J\x1b[0m\x1b[" + (cursorline+1).ToString() + ";" + (cursorcol+lnlen+2 + (rules.TabCount-1)*tabs_before_cursor).ToString() + "H";
+		write += "\x1b[J\x1b[0m\x1b[" + (cursorline-window+1).ToString() + ";" + (cursorcol+lnlen+2 + (rules.TabCount-1)*tabs_before_cursor).ToString() + "H";
 		Console.Write(write); // only write once to prevent screen tear and visible cursor movement
 	}
 
-	static void ProcessInput(ref List<string> contents, ref int line, ref int col, string expath) {
+	static void ProcessInput(ref List<string> contents, ref int line, ref int col, ref int true_col, string expath) {
 		ConsoleKeyInfo key = Console.ReadKey(true);
 		switch (key.Modifiers) {
 			case ConsoleModifiers.None: case ConsoleModifiers.Shift: switch (key.Key) {
@@ -120,16 +138,26 @@ public class Program {
 			} break;
 			case ConsoleModifiers.Control: switch (key.Key) {
 				case ConsoleKey.RightArrow:
-					while (MoveRight(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
 					while (MoveRight(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
+					while (MoveRight(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
 					break;
 				case ConsoleKey.LeftArrow:
 					while (MoveLeft(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
 					while (MoveLeft(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
 					break;
+				case ConsoleKey.UpArrow:
+					col = 0;
+					while (line != 0 && string.IsNullOrWhiteSpace(contents[line])) line--;
+					while (line != 0 && !string.IsNullOrWhiteSpace(contents[line])) line--;
+					break;
+				case ConsoleKey.DownArrow:
+					col = 0;
+					while (line != contents.Count-1 && !string.IsNullOrWhiteSpace(contents[line])) line++;
+					while (line != contents.Count-1 && string.IsNullOrWhiteSpace(contents[line])) line++;
+					break;
 				default: Console.Write("\a"); break;
 			} break;
-			default: Console.Write("\a"); break;
+			default: Console.Write("\a"); break; // TODO: finish keyboard shortcuts
 		}
 	}
 
@@ -150,7 +178,7 @@ public class Program {
 	}
 
 	static bool MoveUp(List<string> contents, ref int line, ref int col) {
-		if (line == 0) { col = 0; return false; }
+		if (line <= 0) { line = 0; col = 0; return false; }
 		else {
 			line--;
 			col = Math.Min(col, contents[line].Length);
@@ -177,9 +205,11 @@ public class Program {
 class Rules {
 	public List<(Regex, string)> Colors { get; set; }
 	public int TabCount { get; set; }
+	public int Margin { get; set; }
 
-	public Rules(List<(Regex, string)>? colors = null, int tab_count = 4) {
+	public Rules(List<(Regex, string)>? colors = null, int tab_count = 4, int margin = 1) {
 		this.Colors = colors is null ? new() : colors;
 		this.TabCount = tab_count;
+		this.Margin = margin;
 	}
 }
