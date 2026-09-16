@@ -2,7 +2,7 @@ namespace Mille {
     public static class Colors {
         public const string Reset = "\u001b[0m";
         public const string ResetBackground = "\u001b[49m";
-        public const string ResetForground = "\x1b[39m";
+        public const string ResetForeground = "\x1b[39m";
         public const string Black = "\u001b[30m";
         public const string Red = "\u001b[31m";
         public const string Green = "\u001b[32m";
