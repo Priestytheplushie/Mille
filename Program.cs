@@ -7,7 +7,7 @@ public class Program {
 				string content;
 				if (Path.Exists(path)) {
 					content = File.ReadAllText(path);
-					OpenFile(content);
+					OpenFileLoop(content);
 				}
 				else {
 					if (!Directory.Exists(path))
@@ -17,7 +17,7 @@ public class Program {
 				}
 				File.WriteAllText(path, string.Empty);
 				content = File.ReadAllText(path);
-				OpenFile(content);
+				OpenFileLoop(content);
 			}
 			else {
 				Console.WriteLine("Avaliable Arguements:");
@@ -29,7 +29,7 @@ public class Program {
 		}
 	}
 
-	static void OpenFile(string content) {
+	static void OpenFileLoop(string content) {
 		List<string> contents = new(content.Split("\n"));
 		int line = 0;
 		int col = 0;
