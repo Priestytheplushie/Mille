@@ -3,8 +3,10 @@ Documentation for this project is mainly for the school assignment, and as such 
 
 * [Project Overview](Overview.md)
 * [Psuedocode](Psuedocode.md)
+* [Flowcharts](assets/flowcharts)
+* [Dev Team Roles](Roles.md)
+* [Project Report](Report.md)
 
 Not on GitHub: 
 >These you may not be able to access as they are school managed...
-* Google Doc (Coming soon)
 * [Google Drive Archive](https://drive.google.com/drive/folders/15j12H8PIMbPaXBKS7aQqSYbmwsAIT8kF?usp=sharing)
