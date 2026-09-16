@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Text.RegularExpressions;
 
 namespace Mille;
@@ -26,7 +25,7 @@ public class Program {
 
 		try {
 			if (args.Length == 0) {
-				Console.WriteLine("usage: mille <filepath> or mille <language> --config");
+				Console.WriteLine("usage: mille <filepath> | mille --config | mille --config --language:<language>");
 				Console.WriteLine();
 				Console.WriteLine("To open a file you can use\nmille <filepath>");
 				Console.WriteLine();
@@ -48,6 +47,14 @@ public class Program {
 				else if (args[i].StartsWith("--language:", StringComparison.OrdinalIgnoreCase)) {
 					selectedConfig = args[i].Substring("--language:".Length);
 				}
+				else if (string.Equals(args[i], "--language", StringComparison.OrdinalIgnoreCase)) {
+					if (i + 1 < args.Length && !args[i + 1].StartsWith("--")) {
+						selectedConfig = args[++i];
+					} else {
+						Console.WriteLine("usage: mille --language:<language>");
+						return;
+					}
+				}
 			}
 
 			if (isConfig && selectedConfig != null) {
@@ -56,7 +63,7 @@ public class Program {
 				return;
 			}
 			if (!isConfig && selectedConfig != null) {
-				Console.WriteLine("usage:\nmille --config\nmille --config --language:<language>");
+				// TODO: do something here
 				return;
 			}
 			if (isConfig && selectedConfig == null) {
