@@ -1,26 +1,45 @@
 namespace Mille;
 public class Program {
 	static void Main(string[] args) {
-		if (args.Length > 0) {
-			string path = args[0];
-			string content = File.ReadAllText(path);
-			List<string> contents = new(content.Split("\n"));
-
-			int line = 0;
-			int col = 0;
-			int window = 0;
-
-			while (true) {
-				Display(contents, window, line, col);
-				ProcessInput(ref contents, ref line, ref col);
-				if (line < window) window = line;
-				else if (line > window + Console.WindowHeight) window = line - Console.WindowHeight;
+		try {
+			if (args.Length > 0) {
+				string path = args[0];
+				string content;
+				if (Path.Exists(path)) {
+					content = File.ReadAllText(path);
+					OpenFile(content);
+				}
+				else {
+					if (!Directory.Exists(path))
+					{
+						Directory.CreateDirectory(path);
+					}
+				}
+				File.WriteAllText(path, string.Empty);
+				content = File.ReadAllText(path);
+				OpenFile(content);
 			}
-
+			else {
+				Console.WriteLine("Avaliable Arguements:");
+				Console.WriteLine("<filename> The file to open");
+			}
 		}
-		else {
-			Console.WriteLine("Avaliable Arguements:");
-			Console.WriteLine("<filename> The file to open");
+		catch (UnauthorizedAccessException) {
+			Console.Error.WriteLine("Permission denied: unable to access the specified path.");
+		}
+	}
+
+	static void OpenFile(string content) {
+		List<string> contents = new(content.Split("\n"));
+		int line = 0;
+		int col = 0;
+		int window = 0;
+
+		while (true) {
+			Display(contents, window, line, col);
+			ProcessInput(ref contents, ref line, ref col);
+			if (line < window) window = line;
+			else if (line > window + Console.WindowHeight) window = line - Console.WindowHeight;
 		}
 	}
 
