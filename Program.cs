@@ -44,7 +44,7 @@ public class Program {
 			content = string.Empty;
 		}
 
-			List<string> contents = new(content.Split("\n"));
+			List<string> contents = new(content.Split(new[] { "\r\n","\n" }, StringSplitOptions.None));
 			int line = 0;
 			int col = 0;
 			int window = 0;
