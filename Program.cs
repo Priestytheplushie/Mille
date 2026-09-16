@@ -56,7 +56,7 @@ public class Program {
 				return;
 			}
 			if (!isConfig && selectedConfig != null) {
-				Console.WriteLine("usage: mille --config --language:<language>");
+				Console.WriteLine("usage:\nmille --config\nmille --config --language:<language>");
 				return;
 			}
 			if (isConfig && selectedConfig == null) {
