@@ -158,11 +158,15 @@ public class Program {
 			case ConsoleModifiers.None: case ConsoleModifiers.Shift: switch (key.Key) {
 				case ConsoleKey.Backspace:
 					if (col == 0) {
-						string append = contents[line];
-						contents.RemoveAt(line);
-						line--;
-						col = contents[line].Length;
-						contents[line] += append;
+						if (line == 0) {
+							Console.Beep();
+						} else {
+							string append = contents[line];
+							contents.RemoveAt(line);
+							line--;
+							col = contents[line].Length;
+							contents[line] += append;
+						}
 					}
 					else {
 						contents[line] = contents[line][..(col-1)] + contents[line][col..];
