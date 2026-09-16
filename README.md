@@ -10,7 +10,7 @@ A C# text editor using Regular Expressions for syntax highlighting
 You can open any file using a path by passing it's path as the first arguement
 
 ```bash
-dotnet run Program.cs
+dotnet run <filename>
 
 ```
 ## Documentation 
