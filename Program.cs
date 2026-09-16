@@ -22,31 +22,29 @@ public class Program {
 			(new(@"(TODO:?)"), "\x1b[37m\x1b[48;2;30;180;180m"),
 			(new(@" +$"), "\x1b[42m\x1b[39m")
 		]), tab_count: 3);
-    
-    try {
-        if (args.Length == 0) {
-            Console.WriteLine("Available Arguments:");
-            Console.WriteLine("<filename> The file to open");
-            return;
-        }
 
-        string path = args[0];
-        string content;
+	try {
+		if (args.Length == 0) {
+			Console.WriteLine("Available Arguments:");
+			Console.WriteLine("<filename> The file to open");
+			return;
+		}
 
-        if (File.Exists(path)) {
-            content = File.ReadAllText(path);
-        }
-        else {
-            if (Directory.Exists(path)) {
-                Console.Error.WriteLine("The specified path is a directory, not a file.");
-                return;
-            }
+		string path = args[0];
+		string content;
 
-            content = string.Empty;
-        }
+		if (File.Exists(path)) {
+			content = File.ReadAllText(path);
+		}
+		else {
+			if (Directory.Exists(path)) {
+				Console.Error.WriteLine("The specified path is a directory, not a file.");
+				return;
+			}
+			content = string.Empty;
+		}
 
-		List<string> contents = new(content.Split("\n"));
-
+			List<string> contents = new(content.Split("\n"));
 			int line = 0;
 			int col = 0;
 			int window = 0;
@@ -54,7 +52,7 @@ public class Program {
 
 			while (true) {
 				Display(rules, contents, window, line, col);
-				ProcessInput(ref contents, ref line, ref col, ref true_col, args[0]);
+				ProcessInput(ref contents, ref line, ref col, ref true_col, ref window, args[0]);
 				if (line < window) window = line;
 				else if (line > window + Console.WindowHeight - rules.Margin - 1) window = line - Console.WindowHeight + rules.Margin + 1;
 			}
@@ -111,7 +109,7 @@ public class Program {
 		Console.Write(write); // only write once to prevent screen tear and visible cursor movement
 	}
 
-	static void ProcessInput(ref List<string> contents, ref int line, ref int col, ref int true_col, string expath) {
+	static void ProcessInput(ref List<string> contents, ref int line, ref int col, ref int true_col, ref int window, string expath) {
 		ConsoleKeyInfo key = Console.ReadKey(true);
 		switch (key.Modifiers) {
 			case ConsoleModifiers.None: case ConsoleModifiers.Shift: switch (key.Key) {
@@ -126,19 +124,33 @@ public class Program {
 					else {
 						contents[line] = contents[line][..(col-1)] + contents[line][col..];
 						col--;
-					} break;
+					} true_col = col; break;
 				case ConsoleKey.Enter:
 					contents.Insert(line+1, contents[line][col..]);
 					contents[line] = contents[line].Remove(col);
-					line++; col = 0; break;
-				case ConsoleKey.PageDown: line = Math.Min(line+40, contents.Count-1); break;
-				case ConsoleKey.PageUp: line = Math.Max(line-40, 0); break;
-				case ConsoleKey.End: col = contents[line].Length; break;
-				case ConsoleKey.Home: col = 0; break;
-				case ConsoleKey.LeftArrow: MoveLeft(contents, ref line, ref col); break;
-				case ConsoleKey.RightArrow: MoveRight(contents, ref line, ref col); break;
-				case ConsoleKey.UpArrow: MoveUp(contents, ref line, ref col); break;
-				case ConsoleKey.DownArrow: MoveDown(contents, ref line, ref col); break;
+					line++; col = 0; true_col = 0; break;
+				case ConsoleKey.PageDown:
+					line = Math.Min(line+Console.WindowHeight, contents.Count-1);
+					col = Math.Min(col, contents[line].Length); true_col = col;
+					window = Math.Min(window+Console.WindowHeight, contents.Count-Console.WindowHeight);
+					break;
+				case ConsoleKey.PageUp:
+					line = Math.Max(line-Console.WindowHeight, 0);
+					col = Math.Min(col, contents[line].Length); true_col = col;
+					window = Math.Max(window-Console.WindowHeight, 0);
+					break;
+				case ConsoleKey.End: col = contents[line].Length; true_col = col; break;
+				case ConsoleKey.Home: col = 0; true_col = col; break;
+				case ConsoleKey.LeftArrow:
+					MoveLeft(contents, ref line, ref col);
+					true_col = col;
+					break;
+				case ConsoleKey.RightArrow:
+					MoveRight(contents, ref line, ref col);
+					true_col = col;
+					break;
+				case ConsoleKey.UpArrow: MoveUp(contents, ref line, ref col, true_col); break;
+				case ConsoleKey.DownArrow: MoveDown(contents, ref line, ref col, true_col); break;
 				case ConsoleKey.Delete:
 					if (col == contents[line].Length) {
 						if (line < contents.Count-1) {
@@ -146,20 +158,24 @@ public class Program {
 							contents.RemoveAt(line+1);
 							contents[line] += append;
 						}
-					} else contents[line] = contents[line][..col] + contents[line][(col+1)..]; break;
+					} else contents[line] = contents[line][..col] + contents[line][(col+1)..];
+					true_col = col;
+					break;
 				case ConsoleKey.Escape: Exit(contents, expath); break;
 				default:
 					contents[line] = contents[line].Insert(col, ""+key.KeyChar);
-					col++; break;
+					col++; true_col = col; break;
 			} break;
 			case ConsoleModifiers.Control: switch (key.Key) {
 				case ConsoleKey.RightArrow:
 					while (MoveRight(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
 					while (MoveRight(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
+					true_col = col;
 					break;
 				case ConsoleKey.LeftArrow:
 					while (MoveLeft(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
 					while (MoveLeft(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
+					true_col = col;
 					break;
 				case ConsoleKey.UpArrow:
 					col = 0;
@@ -179,7 +195,7 @@ public class Program {
 
 	static bool MoveLeft(List<string> contents, ref int line, ref int col) {
 		if (col == 0) {
-			if (MoveUp(contents, ref line, ref col)) { col = contents[line].Length; return true; }
+			if (MoveUp(contents, ref line, ref col, int.MaxValue)) return true;
 			return false;
 		} else col--;
 		return true;
@@ -187,26 +203,26 @@ public class Program {
 
 	static bool MoveRight(List<string> contents, ref int line, ref int col) {
 		if (col == contents[line].Length) {
-			if (MoveDown(contents, ref line, ref col)) { col = 0; return true; }
+			if (MoveDown(contents, ref line, ref col, 0)) return true;
 			return false;
 		} else col++;
 		return true;
 	}
 
-	static bool MoveUp(List<string> contents, ref int line, ref int col) {
+	static bool MoveUp(List<string> contents, ref int line, ref int col, int true_col) {
 		if (line <= 0) { line = 0; col = 0; return false; }
 		else {
 			line--;
-			col = Math.Min(col, contents[line].Length);
+			col = Math.Min(true_col, contents[line].Length);
 			return true;
 		}
 	}
 
-	static bool MoveDown(List<string> contents, ref int line, ref int col) {
+	static bool MoveDown(List<string> contents, ref int line, ref int col, int true_col) {
 		if (line == contents.Count - 1) { col = contents[line].Length; return false; }
 		else {
 			line++;
-			col = Math.Min(col, contents[line].Length);
+			col = Math.Min(true_col, contents[line].Length);
 			return true;
 		}
 	}
