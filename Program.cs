@@ -239,20 +239,20 @@ public class Program {
 					} else contents[line] = contents[line][..col] + contents[line][(col+1)..];
 					true_col = col;
 					break;
-				case ConsoleKey.Escape: Save(contents, expath); Environment.Exit(0);
+				case ConsoleKey.Escape: Save(contents, expath); Exit(); break;
 				default:
 					contents[line] = contents[line].Insert(col, ""+key.KeyChar);
 					col++; true_col = col; break;
 			} break;
 			case ConsoleModifiers.Control: switch (key.Key) {
 				case ConsoleKey.RightArrow:
-					while (MoveRight(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
-					while (MoveRight(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
+					while (MoveRight(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsLetterOrDigit(contents[line][col])));
+					while (MoveRight(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsLetterOrDigit(contents[line][col])));
 					true_col = col;
 					break;
 				case ConsoleKey.LeftArrow:
-					while (MoveLeft(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
-					while (MoveLeft(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
+					while (MoveLeft(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsLetterOrDigit(contents[line][col])));
+					while (MoveLeft(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsLetterOrDigit(contents[line][col])));
 					true_col = col;
 					break;
 				case ConsoleKey.UpArrow:
@@ -264,6 +264,18 @@ public class Program {
 					col = 0;
 					while (line != contents.Count-1 && !string.IsNullOrWhiteSpace(contents[line])) line++;
 					while (line != contents.Count-1 && string.IsNullOrWhiteSpace(contents[line])) line++;
+					break;
+				case ConsoleKey.Backspace:
+					int start = col;
+					while (col > 0 && (col == contents[line].Length || Char.IsLetterOrDigit(contents[line][col]))) col--;
+					while (col > 0 && (col == contents[line].Length || !Char.IsLetterOrDigit(contents[line][col]))) col--;
+					contents[line] = contents[line][..col] + contents[line][start..];
+					break;
+				case ConsoleKey.Delete:
+					int end = col;
+					while (end != contents[line].Length && Char.IsLetterOrDigit(contents[line][end])) end--;
+					while (end != contents[line].Length && !Char.IsLetterOrDigit(contents[line][end])) end--;
+					contents[line] = contents[line][..col] + contents[line][end..];
 					break;
 				case ConsoleKey.B: // find matching close-bracket
 					int saved_col = col;
@@ -295,7 +307,7 @@ public class Program {
 						Console.Write("\a");
 						break;
 				case ConsoleKey.S: Save(contents, expath); break;
-				case ConsoleKey.Escape: Environment.Exit(0);
+				case ConsoleKey.Q: Exit(); break;
 				default: Console.Write("\a"); break;
 			} break;
 			default: Console.Write("\a"); break; // TODO: finish keyboard shortcuts
@@ -338,7 +350,11 @@ public class Program {
 
 	static void Save(List<string> lines, string fp) {
 		File.WriteAllText(fp, string.Join(Environment.NewLine, lines));
+	}
+
+	static void Exit() {
 		Console.Write("\x1b[2J\x1b[H\x1b[3J");
+		Environment.Exit(0);
 	}
 }
 
