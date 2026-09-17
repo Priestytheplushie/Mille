@@ -1,7 +1,29 @@
 using System.Text.RegularExpressions;
 
 namespace Mille;
-
+/*
+idfk
+idk
+you told me to
+and i don't really care
+you can just say i didn't do much
+and if you want you can blame it on the weekend project assignments
+but eh i don't care
+i will keep adding things here
+keep rejecting the pull requests pls
+i don't understand regex well
+so i don't really care about not using much AI
+however i still decided not to really use much
+mainly because i don't care about this project enough
+long term projects like these really make me mad
+why is every policy also trying to choke me
+even during the times when i was burned out at home
+can i at least have a delusion? please?
+even if i know its false
+its still a world i can bend at will
+and i want that world to at least exist in my mind
+a world where all of its rules make sense
+*/
 public class Program {
 	static void Main(string[] args) {
 		Rules rules = new(colors: new ([
@@ -68,8 +90,8 @@ public class Program {
 	static void Display(Rules rules, List<string> contents, int window, int cursorline, int cursorcol) {
 		string write = "\x1b[H\x1b[3J";
 		int lnlen = (int)Math.Log10((double)contents.Count) + 1;
-		bool commentFlag = false;
-		bool startComment=false;
+		bool commentFlag = false; //also does nothing
+		bool startComment=false; //does nothing
 		for (int line = window; line < Math.Min(window + Console.WindowHeight - rules.Margin, contents.Count); line++) {
 			string s = contents[line];
 			List<(int, string?)> actions = new();
