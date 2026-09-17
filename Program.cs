@@ -24,16 +24,21 @@ public class Program {
 		]), tab_count: 3);
 
 		try {
-			if (args.Length == 0) {
-				Console.WriteLine("usage: mille <filepath> | mille --config | mille --config --language:<language>");
-				Console.WriteLine();
-				Console.WriteLine("To open a file you can use\nmille <filepath>");
-				Console.WriteLine();
-				Console.WriteLine("To edit regular expression rules for programming languages: \nmille --language:<language> --config");
-				Console.WriteLine();
-				Console.WriteLine("To edit general configuration languages:\nmille --config");
-				Console.WriteLine();
-				Console.WriteLine("Use [esc] to exit the current open editor");
+			if (args.Length == 0 || args[0] == "--help") {
+				Console.WriteLine("Mille - A C# text editor\n");
+				Console.WriteLine("Usage:");
+				Console.WriteLine("  mille <filepath> [options]");
+				Console.WriteLine("  mille --config [options]\n");
+				Console.WriteLine("Examples:");
+				Console.WriteLine("  Open a file                     mille <filepath>");
+				Console.WriteLine("  Open with explicit config       mille <filepath> --language:<lang>");
+				Console.WriteLine("  Edit language rules             mille --config --language:<lang>");
+				Console.WriteLine("  Edit general configuration      mille --config\n");
+				Console.WriteLine("Flags:");
+				Console.WriteLine("  --language:<lang>  Set syntax highlighting rules");
+				Console.WriteLine("  --config           Open the YAML config\n");
+				Console.WriteLine("Keybinds:");
+				Console.WriteLine("  [esc]              Save and exit the current editor");
 				return;
 			}
 
