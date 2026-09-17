@@ -324,9 +324,54 @@ public class Program {
 					if (cutbuf is null) { Message("Cutbuffer is Empty"); Console.Write("\a"); break; }
 					contents.Insert(line++, cutbuf);
 					break;
+				case ConsoleKey.F:
+					if (col == contents[line].Length || !Char.IsLetterOrDigit(contents[line][col])) {
+						Message("Not on a Word");
+						Console.Write("\a");
+						break;
+					}
+					string token = "" + contents[line][col];
+					int i;
+					for (i = col-1; i>=0 && Char.IsLetterOrDigit(contents[line][i]); i--) token = contents[line][i] + token;
+					for (i = col+1; i<contents[line].Length && Char.IsLetterOrDigit(contents[line][i]); i++) token += contents[line][i];
+
+					if (contents[line][i..].Contains(token)) col = i + contents[line][i..].IndexOf(token);
+					else for (int new_line = line == contents.Count-1 ? 0 : line+1; new_line != line; new_line = new_line == contents.Count-1 ? 0 : new_line+1) {
+						if (new_line == 0) Message("Search Wrapped");
+						if (contents[new_line].Contains(token)) {
+							line = new_line;
+							col = contents[line].IndexOf(token);
+							goto success;
+						}
+					}
+					Message("`" + token + "` Not Found");
+					success:
+					break;
 				default: Message("Unrecognized Shortcut: `Ctrl-" + key.Key + "`"); Console.Write("\a"); break;
 			} break;
 			case ConsoleModifiers.Alt: switch (key.Key) {
+				case ConsoleKey.F:
+					if (col == contents[line].Length || !Char.IsLetterOrDigit(contents[line][col])) {
+						Message("Not on a Word");
+						Console.Write("\a");
+						break;
+					}
+					string token = "" + contents[line][col];
+					int i;
+					for (i = col+1; i<contents[line].Length && Char.IsLetterOrDigit(contents[line][i]); i++) token += contents[line][i];
+					for (i = col-1; i>=0 && Char.IsLetterOrDigit(contents[line][i]); i--) token = contents[line][i] + token;
+
+					if (i > 0 && contents[line][..i].Contains(token)) col = contents[line][..i].IndexOf(token);
+					else for (int new_line = line == 0 ? contents.Count-1 : line-1; new_line != line; new_line = new_line == 0 ? contents.Count-1 : new_line-1) {
+						if (new_line == contents.Count-1) Message("Search Wrapped");
+						if (contents[new_line].Contains(token)) {
+							line = new_line;
+							col = contents[line].IndexOf(token);
+							goto success;
+						}
+					}
+					Message("`" + token + "` Not Found");
+					success: break;
 				default: Message("Unrecognized Shortcut: `Alt-" + key.Key + "`"); Console.Write("\a"); break;
 			} break;
 			case ConsoleModifiers.Alt | ConsoleModifiers.Control: switch (key.Key) {
