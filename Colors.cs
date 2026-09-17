@@ -39,5 +39,66 @@ namespace Mille {
         public const string Plum = "\u001b[38;2;221;160;221m";
         public const string MutedGray = "\u001b[38;2;106;115;125m";
         public const string Charcoal = "\u001b[38;2;40;44;52m";
+
+        public static string Resolve(string colorInput) {
+            string namedColor = colorInput.ToLowerInvariant() switch {
+                "reset" => Reset,
+                "resetbackground" => ResetBackground,
+                "resetforeground" => ResetForeground,
+                "black" => Black,
+                "red" => Red,
+                "green" => Green,
+                "yellow" => Yellow,
+                "blue" => Blue,
+                "magenta" => Magenta,
+                "cyan" => Cyan,
+                "white" => White,
+                "darkgray" => DarkGray,
+                "brightred" => BrightRed,
+                "brightgreen" => BrightGreen,
+                "brightyellow" => BrightYellow,
+                "brightblue" => BrightBlue,
+                "brightmagenta" => BrightMagenta,
+                "brightcyan" => BrightCyan,
+                "brightwhite" => BrightWhite,
+                "orange" => Orange,
+                "brown" => Brown,
+                "teal" => Teal,
+                "purple" => Purple,
+                "pink" => Pink,
+                "lime" => Lime,
+                "gold" => Gold,
+                "indigo" => Indigo,
+                "peach" => Peach,
+                "maroon" => Maroon,
+                "lavender" => Lavender,
+                "mint" => Mint,
+                "coral" => Coral,
+                "olive" => Olive,
+                "softred" => SoftRed,
+                "softgreen" => SoftGreen,
+                "sand" => Sand,
+                "plum" => Plum,
+                "mutedgray" => MutedGray,
+                "charcoal" => Charcoal,
+                _ => ""
+            };
+            
+            if (namedColor != "") {
+                return namedColor;
+            }
+
+            if (colorInput.StartsWith("#")) {
+                colorInput = colorInput[1..];
+            }
+
+            if (colorInput.Length == 6 && int.TryParse(colorInput,System.Globalization.NumberStyles.HexNumber, null, out int rgb)) {
+                int r = (rgb >> 16) & 0xFF;
+                int g = (rgb >> 8) & 0xFF;
+                int b = rgb & 0xFF;
+                return $"\x1b[38;2;{r};{g};{b}m";
+            }
+            return "";
+        }
     }
 }

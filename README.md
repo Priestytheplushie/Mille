@@ -14,7 +14,7 @@ dotnet run <filename>
 
 ```
 ## Documentation 
-Code documentation is defined in the `docs/` folder in [Index.md](docs/Index.md).
+Code documentation is defined in the `docs` branch
 
 ## Development 
 This project and `README.md` is still in development and a work in progress.
