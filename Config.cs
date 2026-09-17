@@ -73,29 +73,34 @@ public static class Config {
     if (language.ToLowerInvariant() == "csharp") {
         defaultTemplate = 
             @"# Syntax rules for " + language + @"
-            - pattern: '\b(bool|byte|sbyte|char|decimal|double|float|IntPtr|int|uint|long|ulong|object|short|ushort|string|base|this|var|void)\b'
-                color: '#1EC832'
-            - pattern: '\b(alias|as|case|catch|checked|default|do|dynamic|else|finally|for|fixed|foreach|goto|if|is|lock|new|null|return|switch|throw|try|unchecked|while|abstract|async|class|const|delegate|enum|event|explicit|extern|get|implicit|in|internal|interface|namespace|operator|out|override|params|partial|private|protected|public|readonly|ref|sealed|set|sizeof|stackalloc|static|struct|typeof|unsafe|using|value|virtual|volatile|yield|from|where|select|group|info|orderby|join|let|in|on|equals|by|ascending|descending)\b'
-                color: '#1EB4B4'
-            - pattern: '\b(true|false)\b'
-                color: '#78FFFF'
-            - pattern: '\b(break|continue)\b'
-                color: '#FF3232'
-            - pattern: '[+\-*<=>?:!~%&|]'
-                color: '#C8141E'
-            - pattern: '\b(0|[1-9][0-9._]+|0x[A-Fa-f0-9_]+|0b[01_]+|0[0-7]+)\b'
-                color: '#2332C8'
-            - pattern: '^.*?(?:("".*?"").*?)+$'
-                color: '#A0821E'
-            - pattern: '/{2}.*$'
-                color: 'DarkGray'
-            - pattern: '\t '
-                color: 'Red'
-            - pattern: '(TODO:?)'
-                color: 'BrightCyan'
-            - pattern: ' +$'
-                color: 'Green'
-            ";}
+rules:
+    - pattern: '\b(bool|byte|sbyte|char|decimal|double|float|IntPtr|int|uint|long|ulong|object|short|ushort|string|base|this|var|void)\b'
+        color: '#1EC832'
+    - pattern: '\b(alias|as|case|catch|checked|default|do|dynamic|else|finally|for|fixed|foreach|goto|if|is|lock|new|null|return|switch|throw|try|unchecked|while|abstract|async|class|const|delegate|enum|event|explicit|extern|get|implicit|in|internal|interface|namespace|operator|out|override|params|partial|private|protected|public|readonly|ref|sealed|set|sizeof|stackalloc|static|struct|typeof|unsafe|using|value|virtual|volatile|yield|from|where|select|group|info|orderby|join|let|in|on|equals|by|ascending|descending)\b'
+        color: '#1EB4B4'
+    - pattern: '\b(true|false)\b'
+        color: '#78FFFF'
+    - pattern: '\b(break|continue)\b'
+        color: '#FF3232'
+    - pattern: '[+\-*<=>?:!~%&|]'
+        color: '#C8141E'
+    - pattern: '\b(0|[1-9][0-9._]+|0x[A-Fa-f0-9_]+|0b[01_]+|0[0-7]+)\b'
+        color: '#2332C8'
+    - pattern: '^.*?(?:("".*?"").*?)+$'
+        color: '#A0821E'
+    - pattern: '/{2}.*$'
+        color: 'DarkGray'
+    - pattern: '\t '
+        color: 'Red'
+    - pattern: '(TODO:?)'
+        color: 'BrightCyan'
+    - pattern: ' +$'
+        color: 'Green'
+";
+        defaultTemplate = Regex.Replace(defaultTemplate, "(?m)^\\s+rules:", "rules:");
+        defaultTemplate = Regex.Replace(defaultTemplate, "(?m)^\\s+- pattern:", "  - pattern:");
+        defaultTemplate = Regex.Replace(defaultTemplate, "(?m)^\\s+color:", "    color:");
+    }
     else {
         defaultTemplate = 
             @"# Syntax rules for " + language + @"
