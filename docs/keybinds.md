@@ -9,4 +9,14 @@ Mille contains a minimal amount of keybinds
 
 `[ctrl-s]`: Save file
 
-`[ctrl-esc]`: Exit without saving
+`[ctrl-q]`: Exit w/o saving 
+
+`[ctrl-del]`: Delete entire word
+
+`[ctrl-k]`: line cut
+
+`[ctrl-u]`: Line paste 
+
+`[ctrl-f]` and `[alt-f]`: find other instances of selected word, forward and backward respectively
+
+`[ctrl-w]`: where query, displays location in file
