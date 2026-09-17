@@ -237,6 +237,9 @@ public class Program {
 					while (line != contents.Count-1 && string.IsNullOrWhiteSpace(contents[line])) line++;
 					break;
 				case ConsoleKey.B: // find matching close-bracket
+					int saved_col = col;
+					int saved_true_col = true_col;
+					int saved_line = line;
 					if (col >= contents[line].Length) goto Err;
 					bool forward = true;
 					int ind = Array.IndexOf(rules.Brackets.Item1, contents[line][col]);
@@ -254,8 +257,12 @@ public class Program {
 						if (contents[line][col] == search) depth--;
 						if (contents[line][col] == opp) depth++;
 					} while (depth != -1 && (forward ? MoveRight(contents, ref line, ref col) : MoveLeft(contents, ref line, ref col)));
+					if (col == contents[line].Length || contents[line][col] != search) goto Err;
 					break;
 					Err:
+						line = saved_line;
+						true_col = saved_true_col;
+						col = saved_col;
 						Console.Write("\a");
 						break;
 				default: Console.Write("\a"); break;
