@@ -3,6 +3,9 @@ using System.Text.RegularExpressions;
 namespace Mille;
 
 public class Program {
+	static string? Msg = null;
+	static string? cutbuf = null;
+
 	static void Main(string[] args) {
 		Rules rules = new(colors: new ([
 			(new(@"\b(bool|byte|sbyte|char|decimal|double|float|IntPtr|int|uint|long|ulong|object|short|ushort|string|base|this|var|void)\b"), "\x1b[38;2;30;200;50m"),
@@ -134,7 +137,7 @@ public class Program {
 
 	static void Display(Rules rules, List<string> contents, int window, int cursorline, int cursorcol) {
 		string write = "\x1b[H\x1b[3J";
-		int lnlen = (int)Math.Log10((double)contents.Count) + 1;
+		int lnlen = (int)Math.Log10((double)(contents.Count+1)) + 1;
 		for (int line = window; line < Math.Min(window + Console.WindowHeight - rules.Margin, contents.Count); line++) {
 			string s = contents[line];
 
@@ -163,8 +166,7 @@ public class Program {
 					if (act == null) {
 						fmt.Pop();
 						s1 += fmt.Peek();
-					}
-					else {
+					} else {
 						fmt.Push(act);
 						s1 += act;
 					}
@@ -174,7 +176,11 @@ public class Program {
 
 			s = s.Replace("\t","".PadLeft(rules.TabCount));
 
-			write += "\x1b[7m" + line.ToString().PadRight(lnlen) + "\x1b[27m " + s + "\x1b[0K\n";
+			write += "\x1b[7m" + (line+1).ToString().PadRight(lnlen) + "\x1b[27m " + s + "\x1b[0K\n";
+		}
+		if (Program.Msg is not null) {
+			write += "\x1b[0m                \x1b[7m " + Program.Msg + " \x1b[0m\x1b[J";
+			Program.Msg = null;
 		}
 		int tabs_before_cursor = contents[cursorline].Remove(cursorcol).Count(c => c == '\t');
 		write += "\x1b[J\x1b[0m\x1b[" + (cursorline-window+1).ToString() + ";" + (cursorcol+lnlen+2 + (rules.TabCount-1)*tabs_before_cursor).ToString() + "H";
@@ -239,20 +245,20 @@ public class Program {
 					} else contents[line] = contents[line][..col] + contents[line][(col+1)..];
 					true_col = col;
 					break;
-				case ConsoleKey.Escape: Exit(contents, expath); break;
+				case ConsoleKey.Escape: Save(contents, expath); Exit(); break;
 				default:
 					contents[line] = contents[line].Insert(col, ""+key.KeyChar);
 					col++; true_col = col; break;
 			} break;
 			case ConsoleModifiers.Control: switch (key.Key) {
 				case ConsoleKey.RightArrow:
-					while (MoveRight(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
-					while (MoveRight(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
+					while (MoveRight(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsLetterOrDigit(contents[line][col])));
+					while (MoveRight(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsLetterOrDigit(contents[line][col])));
 					true_col = col;
 					break;
 				case ConsoleKey.LeftArrow:
-					while (MoveLeft(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
-					while (MoveLeft(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsWhiteSpace(contents[line][col])));
+					while (MoveLeft(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsLetterOrDigit(contents[line][col])));
+					while (MoveLeft(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsLetterOrDigit(contents[line][col])));
 					true_col = col;
 					break;
 				case ConsoleKey.UpArrow:
@@ -265,16 +271,28 @@ public class Program {
 					while (line != contents.Count-1 && !string.IsNullOrWhiteSpace(contents[line])) line++;
 					while (line != contents.Count-1 && string.IsNullOrWhiteSpace(contents[line])) line++;
 					break;
+				case ConsoleKey.Backspace:
+					int start = col;
+					while (col > 0 && (col == contents[line].Length || Char.IsLetterOrDigit(contents[line][col]))) col--;
+					while (col > 0 && (col == contents[line].Length || !Char.IsLetterOrDigit(contents[line][col]))) col--;
+					contents[line] = contents[line][..col] + contents[line][start..];
+					break;
+				case ConsoleKey.Delete:
+					int end = col;
+					while (end != contents[line].Length && Char.IsLetterOrDigit(contents[line][end])) end--;
+					while (end != contents[line].Length && !Char.IsLetterOrDigit(contents[line][end])) end--;
+					contents[line] = contents[line][..col] + contents[line][end..];
+					break;
 				case ConsoleKey.B: // find matching close-bracket
 					int saved_col = col;
 					int saved_true_col = true_col;
 					int saved_line = line;
-					if (col >= contents[line].Length) goto Err;
+					if (col >= contents[line].Length) { Message("Not A Bracket"); goto Err; }
 					bool forward = true;
 					int ind = Array.IndexOf(rules.Brackets.Item1, contents[line][col]);
 					if (ind == -1) {
 						ind = Array.IndexOf(rules.Brackets.Item2, contents[line][col]);
-						if (ind == -1) goto Err;
+						if (ind == -1) { Message("Not A Bracket"); goto Err; }
 						forward = false;
 					}
 					char search = (forward ? rules.Brackets.Item2 : rules.Brackets.Item1)[ind];
@@ -286,7 +304,7 @@ public class Program {
 						if (contents[line][col] == search) depth--;
 						if (contents[line][col] == opp) depth++;
 					} while (depth != -1 && (forward ? MoveRight(contents, ref line, ref col) : MoveLeft(contents, ref line, ref col)));
-					if (col == contents[line].Length || contents[line][col] != search) goto Err;
+					if (col == contents[line].Length || contents[line][col] != search) { Message("Paren Unmatched"); goto Err; }
 					break;
 					Err:
 						line = saved_line;
@@ -294,10 +312,87 @@ public class Program {
 						col = saved_col;
 						Console.Write("\a");
 						break;
-				default: Console.Write("\a"); break;
+				case ConsoleKey.S: Save(contents, expath); break;
+				case ConsoleKey.Q: Exit(); break;
+				case ConsoleKey.W: Message("Line: " + (line+1) + "/" + contents.Count + ", Column: " + (col+1) + "/" + (contents[line].Length+1)); break;
+				case ConsoleKey.K:
+					cutbuf = contents[line];
+					contents.RemoveAt(line);
+					if (line == contents.Count) line--;
+					col = Math.Min(true_col, contents[line].Length);
+					break;
+				case ConsoleKey.U:
+					if (cutbuf is null) { Message("Cutbuffer is Empty"); Console.Write("\a"); break; }
+					contents.Insert(line++, cutbuf);
+					break;
+				case ConsoleKey.F:
+					if (col == contents[line].Length || !Char.IsLetterOrDigit(contents[line][col])) {
+						Message("Not on a Word");
+						Console.Write("\a");
+						break;
+					}
+					string token = "" + contents[line][col];
+					int i;
+					for (i = col-1; i>=0 && Char.IsLetterOrDigit(contents[line][i]); i--) token = contents[line][i] + token;
+					for (i = col+1; i<contents[line].Length && Char.IsLetterOrDigit(contents[line][i]); i++) token += contents[line][i];
+
+					if (contents[line][i..].Contains(token)) col = i + contents[line][i..].IndexOf(token);
+					else for (int new_line = line == contents.Count-1 ? 0 : line+1; new_line != line; new_line = new_line == contents.Count-1 ? 0 : new_line+1) {
+						if (new_line == 0) Message("Search Wrapped");
+						if (contents[new_line].Contains(token)) {
+							line = new_line;
+							col = contents[line].IndexOf(token);
+							goto success;
+						}
+					}
+					Message("`" + token + "` Not Found");
+					success:
+					break;
+				default: Message("Unrecognized Shortcut: `Ctrl-" + key.Key + "`"); Console.Write("\a"); break;
+			} break;
+			case ConsoleModifiers.Alt: switch (key.Key) {
+				case ConsoleKey.F:
+					if (col == contents[line].Length || !Char.IsLetterOrDigit(contents[line][col])) {
+						Message("Not on a Word");
+						Console.Write("\a");
+						break;
+					}
+					string token = "" + contents[line][col];
+					int i;
+					for (i = col+1; i<contents[line].Length && Char.IsLetterOrDigit(contents[line][i]); i++) token += contents[line][i];
+					for (i = col-1; i>=0 && Char.IsLetterOrDigit(contents[line][i]); i--) token = contents[line][i] + token;
+
+					if (i > 0 && contents[line][..i].Contains(token)) col = contents[line][..i].IndexOf(token);
+					else for (int new_line = line == 0 ? contents.Count-1 : line-1; new_line != line; new_line = new_line == 0 ? contents.Count-1 : new_line-1) {
+						if (new_line == contents.Count-1) Message("Search Wrapped");
+						if (contents[new_line].Contains(token)) {
+							line = new_line;
+							col = contents[line].IndexOf(token);
+							goto success;
+						}
+					}
+					Message("`" + token + "` Not Found");
+					success: break;
+				default: Message("Unrecognized Shortcut: `Alt-" + key.Key + "`"); Console.Write("\a"); break;
+			} break;
+			case ConsoleModifiers.Alt | ConsoleModifiers.Control: switch (key.Key) {
+				default: Message("Unrecognized Shortcut: `Ctrl-Alt-" + key.Key + "`"); Console.Write("\a"); break;
+			} break;
+			case ConsoleModifiers.Control | ConsoleModifiers.Shift: switch (key.Key) {
+				default: Message("Unrecognized Shortcut: `Ctrl-Shift-" + key.Key + "`"); Console.Write("\a"); break;
+			} break;
+			case ConsoleModifiers.Alt | ConsoleModifiers.Shift: switch (key.Key) {
+				default: Message("Unrecognized Shortcut: `Alt-Shift-" + key.Key + "`"); Console.Write("\a"); break;
+			} break;
+			case ConsoleModifiers.Control | ConsoleModifiers.Alt | ConsoleModifiers.Shift: switch (key.Key) {
+				default: Message("Unrecognized Shortcut: `Ctrl-Alt-Shift-" + key.Key + "`"); Console.Write("\a"); break;
 			} break;
 			default: Console.Write("\a"); break; // TODO: finish keyboard shortcuts
 		}
+	}
+
+	static void Message(string msg) {
+		Program.Msg = msg;
 	}
 
 	static bool MoveLeft(List<string> contents, ref int line, ref int col) {
@@ -334,8 +429,11 @@ public class Program {
 		}
 	}
 
-	static void Exit(List<string> lines, string fp) {
+	static void Save(List<string> lines, string fp) {
 		File.WriteAllText(fp, string.Join(Environment.NewLine, lines));
+	}
+
+	static void Exit() {
 		Console.Write("\x1b[2J\x1b[H\x1b[3J");
 		Environment.Exit(0);
 	}
