@@ -24,16 +24,20 @@ public class Program {
 		]), tab_count: 3);
 
 		try {
-			if (args.Length == 0) {
-				Console.WriteLine("usage: mille <filepath> | mille --config | mille --config --language:<language>");
-				Console.WriteLine();
-				Console.WriteLine("To open a file you can use\nmille <filepath>");
-				Console.WriteLine();
-				Console.WriteLine("To edit regular expression rules for programming languages: \nmille --language:<language> --config");
-				Console.WriteLine();
-				Console.WriteLine("To edit general configuration languages:\nmille --config");
-				Console.WriteLine();
-				Console.WriteLine("Use [esc] to exit the current open editor");
+			if (args.Length == 0 || args[0] == "--help") {
+				Console.WriteLine("Mille - A C# text editor\n");
+				Console.WriteLine("Usage:");
+				Console.WriteLine("  mille <filepath> [options]");
+				Console.WriteLine("  mille --config [options]\n");
+				Console.WriteLine("Examples:");
+				Console.WriteLine("  Open a file                     mille <filepath>");
+				Console.WriteLine("  Open with explicit config       mille <filepath> --language:<lang>");
+				Console.WriteLine("  Edit language rules             mille --config --language:<lang>");
+				Console.WriteLine("Flags:");
+				Console.WriteLine("  --language:<lang>  Set syntax highlighting rules");
+				Console.WriteLine("  --config           Open the YAML config\n");
+				Console.WriteLine("Keybinds:");
+				Console.WriteLine("  [esc]              Save and exit the current editor");
 				return;
 			}
 
@@ -58,21 +62,45 @@ public class Program {
 			}
 
 			if (isConfig && selectedConfig != null) {
-				Console.WriteLine($"Config Language passed {selectedConfig}");
-				// TODO: Handle Configuration 
-				return;
+				string configPath = Config.GetLanguageFilePath(selectedConfig);
+
+				if (!File.Exists(configPath)) {
+					Config.LoadRulesForLanguage(selectedConfig, rules);
+				}
+
+				string yamlContent = File.ReadAllText(configPath);
+				
+				List<string> configContents = new List<string>(yamlContent.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None));
+				int configLine = 0;
+				int configCol = 0;
+				int configWindow = 0;
+				int configTrueCol = 0;
+
+				while (true) {
+					Display(rules, configContents, configWindow, configLine, configCol);
+					ProcessInput(rules, ref configContents, ref configLine, ref configCol, ref configTrueCol, ref configWindow, configPath);
+					
+					if (configLine < configWindow) {
+						configWindow = configLine;
+					}
+					else if (configLine > configWindow + Console.WindowHeight - rules.Margin - 1) {
+						configWindow = configLine - Console.WindowHeight + rules.Margin + 1;
+					}
+				}
 			}
 			if (!isConfig && selectedConfig != null) {
-				// TODO: do something here
-				return;
-			}
-			if (isConfig && selectedConfig == null) {
-				Console.WriteLine("Config request passed");
-				// TODO: Handle general configuration
-				return;
+				rules = Config.LoadRulesForLanguage(selectedConfig, rules);
 			}
 
 			string path = args[0];
+			if (selectedConfig == null && !string.IsNullOrEmpty(path)) {
+				selectedConfig = Config.DetectLanguageFromPath(path);
+			}
+
+			// Load custom YAML rules if available, or keep default fallback
+			if (selectedConfig != null) {
+				rules = Config.LoadRulesForLanguage(selectedConfig, rules);
+			}
 			string content;
 			if (File.Exists(path)) {
 				content = File.ReadAllText(path);
@@ -312,7 +340,7 @@ public class Program {
 	}
 }
 
-class Rules {
+public class Rules {
 	public List<(Regex, string)> Colors { get; set; }
 	public int TabCount { get; set; }
 	public int Margin { get; set; }
