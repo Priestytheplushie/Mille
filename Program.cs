@@ -68,7 +68,7 @@ public class Program {
 			}
 			if (isConfig && selectedConfig == null) {
 				Console.WriteLine("Config request passed");
-				//TODO: Handle general configuration
+				// TODO: Handle general configuration
 				return;
 			}
 
@@ -93,7 +93,7 @@ public class Program {
 
 			while (true) {
 				Display(rules, contents, window, line, col);
-				ProcessInput(ref contents, ref line, ref col, ref true_col, ref window, args[0]);
+				ProcessInput(rules, ref contents, ref line, ref col, ref true_col, ref window, args[0]);
 				if (line < window) window = line;
 				else if (line > window + Console.WindowHeight - rules.Margin - 1) window = line - Console.WindowHeight + rules.Margin + 1;
 			}
@@ -154,7 +154,7 @@ public class Program {
 		Console.CursorVisible = true;
 	}
 
-	static void ProcessInput(ref List<string> contents, ref int line, ref int col, ref int true_col, ref int window, string expath) {
+	static void ProcessInput(Rules rules, ref List<string> contents, ref int line, ref int col, ref int true_col, ref int window, string expath) {
 		ConsoleKeyInfo key = Console.ReadKey(true);
 		switch (key.Modifiers) {
 			case ConsoleModifiers.None: case ConsoleModifiers.Shift: switch (key.Key) {
@@ -236,6 +236,28 @@ public class Program {
 					while (line != contents.Count-1 && !string.IsNullOrWhiteSpace(contents[line])) line++;
 					while (line != contents.Count-1 && string.IsNullOrWhiteSpace(contents[line])) line++;
 					break;
+				case ConsoleKey.B: // find matching close-bracket
+					if (col >= contents[line].Length) goto Err;
+					bool forward = true;
+					int ind = Array.IndexOf(rules.Brackets.Item1, contents[line][col]);
+					if (ind == -1) {
+						ind = Array.IndexOf(rules.Brackets.Item2, contents[line][col]);
+						if (ind == -1) goto Err;
+						forward = false;
+					}
+					char search = (forward ? rules.Brackets.Item2 : rules.Brackets.Item1)[ind];
+					char opp = (forward ? rules.Brackets.Item1 : rules.Brackets.Item2)[ind];
+					int depth = 0;
+					if (forward) MoveRight(contents, ref line, ref col); else MoveLeft(contents, ref line, ref col);
+					do {
+						if (col == contents[line].Length) continue;
+						if (contents[line][col] == search) depth--;
+						if (contents[line][col] == opp) depth++;
+					} while (depth != -1 && (forward ? MoveRight(contents, ref line, ref col) : MoveLeft(contents, ref line, ref col)));
+					break;
+					Err:
+						Console.Write("\a");
+						break;
 				default: Console.Write("\a"); break;
 			} break;
 			default: Console.Write("\a"); break; // TODO: finish keyboard shortcuts
@@ -287,10 +309,15 @@ class Rules {
 	public List<(Regex, string)> Colors { get; set; }
 	public int TabCount { get; set; }
 	public int Margin { get; set; }
+	public (char[], char[]) Brackets { get; set; }
 
-	public Rules(List<(Regex, string)>? colors = null, int tab_count = 4, int margin = 1) {
+	public Rules(List<(Regex, string)>? colors = null, int tab_count = 4, int margin = 1, char[]? left_bracket = null, char[]? right_bracket = null) {
 		this.Colors = colors is null ? new() : colors;
 		this.TabCount = tab_count;
 		this.Margin = margin;
+		this.Brackets = (
+			left_bracket is null ? ['[', '(', '{', '<'] : left_bracket,
+			right_bracket is null ? [']', ')', '}', '>'] : right_bracket
+		);
 	}
 }
