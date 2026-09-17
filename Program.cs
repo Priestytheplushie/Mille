@@ -58,14 +58,36 @@ public class Program {
 			}
 
 			if (isConfig && selectedConfig != null) {
-				Console.WriteLine($"Config Language passed {selectedConfig}");
-				// TODO: Handle Configuration 
-				return;
+				string configPath = Config.GetLanguageFilePath(selectedConfig);
+
+				if (!File.Exists(configPath)) {
+					Config.LoadRulesForLanguage(selectedConfig, rules);
+				}
+
+				string yamlContent = File.ReadAllText(configPath);
+				
+				List<string> configContents = new List<string>(yamlContent.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None));
+				int configLine = 0;
+				int configCol = 0;
+				int configWindow = 0;
+				int configTrueCol = 0;
+
+				while (true) {
+					Display(rules, configContents, configWindow, configLine, configCol);
+					ProcessInput(ref configContents, ref configLine, ref configCol, ref configTrueCol, ref configWindow, configPath);
+					
+					if (configLine < configWindow) {
+						configWindow = configLine;
+					}
+					else if (configLine > configWindow + Console.WindowHeight - rules.Margin - 1) {
+						configWindow = configLine - Console.WindowHeight + rules.Margin + 1;
+					}
+				}
 			}
 			if (!isConfig && selectedConfig != null) {
-				// TODO: do something here
-				return;
+				rules = Config.LoadRulesForLanguage(selectedConfig, rules);
 			}
+
 			if (isConfig && selectedConfig == null) {
 				Console.WriteLine("Config request passed");
 				// TODO: Handle general configuration
@@ -73,6 +95,14 @@ public class Program {
 			}
 
 			string path = args[0];
+			if (selectedConfig == null && !string.IsNullOrEmpty(path)) {
+				selectedConfig = Config.DetectLanguageFromPath(path);
+			}
+
+			// Load custom YAML rules if available, or keep default fallback
+			if (selectedConfig != null) {
+				rules = Config.LoadRulesForLanguage(selectedConfig, rules);
+			}
 			string content;
 			if (File.Exists(path)) {
 				content = File.ReadAllText(path);
@@ -312,7 +342,7 @@ public class Program {
 	}
 }
 
-class Rules {
+public class Rules {
 	public List<(Regex, string)> Colors { get; set; }
 	public int TabCount { get; set; }
 	public int Margin { get; set; }
