@@ -3,7 +3,8 @@ using System.Text.RegularExpressions;
 namespace Mille;
 
 public class Program {
-	static string Msg = "";
+	static string? Msg = null;
+	static string? cutbuf = null;
 
 	static void Main(string[] args) {
 		Rules rules = new(colors: new ([
@@ -177,7 +178,10 @@ public class Program {
 
 			write += "\x1b[7m" + line.ToString().PadRight(lnlen) + "\x1b[27m " + s + "\x1b[0K\n";
 		}
-		if (Program.Msg.Length != 0) write += "\x1b[0m                \x1b[7m " + Program.Msg + " \x1b[0m\x1b[J";
+		if (Program.Msg is not null) {
+			write += "\x1b[0m                \x1b[7m " + Program.Msg + " \x1b[0m\x1b[J";
+			Program.Msg = null;
+		}
 		int tabs_before_cursor = contents[cursorline].Remove(cursorcol).Count(c => c == '\t');
 		write += "\x1b[J\x1b[0m\x1b[" + (cursorline-window+1).ToString() + ";" + (cursorcol+lnlen+2 + (rules.TabCount-1)*tabs_before_cursor).ToString() + "H";
 		Console.CursorVisible = false;
@@ -310,6 +314,16 @@ public class Program {
 						break;
 				case ConsoleKey.S: Save(contents, expath); break;
 				case ConsoleKey.Q: Exit(); break;
+				case ConsoleKey.K:
+					cutbuf = contents[line];
+					contents.RemoveAt(line);
+					if (line == contents.Count) line--;
+					col = Math.Min(true_col, contents[line].Length);
+					break;
+				case ConsoleKey.U:
+					if (cutbuf is null) { Message("Cutbuffer is Empty"); Console.Write("\a"); break; }
+					contents.Insert(line++, cutbuf);
+					break;
 				default: Message("Unrecognized Shortcut: `Ctrl-" + key.Key + "`"); Console.Write("\a"); break;
 			} break;
 			case ConsoleModifiers.Alt: switch (key.Key) {
