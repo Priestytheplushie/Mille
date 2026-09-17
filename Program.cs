@@ -79,7 +79,7 @@ public class Program {
 
 				while (true) {
 					Display(rules, configContents, configWindow, configLine, configCol);
-					ProcessInput(ref configContents, ref configLine, ref configCol, ref configTrueCol, ref configWindow, configPath);
+					ProcessInput(rules, ref configContents, ref configLine, ref configCol, ref configTrueCol, ref configWindow, configPath);
 					
 					if (configLine < configWindow) {
 						configWindow = configLine;
