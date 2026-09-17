@@ -137,7 +137,7 @@ public class Program {
 
 	static void Display(Rules rules, List<string> contents, int window, int cursorline, int cursorcol) {
 		string write = "\x1b[H\x1b[3J";
-		int lnlen = (int)Math.Log10((double)contents.Count) + 1;
+		int lnlen = (int)Math.Log10((double)(contents.Count+1)) + 1;
 		for (int line = window; line < Math.Min(window + Console.WindowHeight - rules.Margin, contents.Count); line++) {
 			string s = contents[line];
 
@@ -176,7 +176,7 @@ public class Program {
 
 			s = s.Replace("\t","".PadLeft(rules.TabCount));
 
-			write += "\x1b[7m" + line.ToString().PadRight(lnlen) + "\x1b[27m " + s + "\x1b[0K\n";
+			write += "\x1b[7m" + (line+1).ToString().PadRight(lnlen) + "\x1b[27m " + s + "\x1b[0K\n";
 		}
 		if (Program.Msg is not null) {
 			write += "\x1b[0m                \x1b[7m " + Program.Msg + " \x1b[0m\x1b[J";
@@ -287,12 +287,12 @@ public class Program {
 					int saved_col = col;
 					int saved_true_col = true_col;
 					int saved_line = line;
-					if (col >= contents[line].Length) Message("Not A Bracket"); goto Err;
+					if (col >= contents[line].Length) { Message("Not A Bracket"); goto Err; }
 					bool forward = true;
 					int ind = Array.IndexOf(rules.Brackets.Item1, contents[line][col]);
 					if (ind == -1) {
 						ind = Array.IndexOf(rules.Brackets.Item2, contents[line][col]);
-						if (ind == -1) Message("Not A Bracket"); goto Err;
+						if (ind == -1) { Message("Not A Bracket"); goto Err; }
 						forward = false;
 					}
 					char search = (forward ? rules.Brackets.Item2 : rules.Brackets.Item1)[ind];
@@ -304,7 +304,7 @@ public class Program {
 						if (contents[line][col] == search) depth--;
 						if (contents[line][col] == opp) depth++;
 					} while (depth != -1 && (forward ? MoveRight(contents, ref line, ref col) : MoveLeft(contents, ref line, ref col)));
-					if (col == contents[line].Length || contents[line][col] != search) Message("Paren Unmatched"); goto Err;
+					if (col == contents[line].Length || contents[line][col] != search) { Message("Paren Unmatched"); goto Err; }
 					break;
 					Err:
 						line = saved_line;
@@ -314,6 +314,7 @@ public class Program {
 						break;
 				case ConsoleKey.S: Save(contents, expath); break;
 				case ConsoleKey.Q: Exit(); break;
+				case ConsoleKey.W: Message("Line: " + (line+1) + "/" + contents.Count + ", Column: " + (col+1) + "/" + (contents[line].Length+1)); break;
 				case ConsoleKey.K:
 					cutbuf = contents[line];
 					contents.RemoveAt(line);
