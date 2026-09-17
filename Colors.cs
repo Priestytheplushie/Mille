@@ -1,4 +1,9 @@
 namespace Mille {
+    //this comment was made with the editor
+    /* multi line 1
+    multi line 2
+    multi line 3
+    */
     public static class Colors {
         public const string Reset = "\u001b[0m";
         public const string Black = "\u001b[30m";

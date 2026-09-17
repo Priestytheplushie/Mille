@@ -5,22 +5,25 @@ namespace Mille;
 public class Program {
 	static void Main(string[] args) {
 		Rules rules = new(colors: new ([
-			(new(@"\b(bool|byte|sbyte|char|decimal|double|float|IntPtr|int|uint|long|ulong|object|short|ushort|string|base|this|var|void)\b"), "\x1b[38;2;30;200;50m"),
+			(new(@"\b(bool|byte|sbyte|char|decimal|double|float|IntPtr|int|uint|long|ulong|object|short|ushort|string|base|this|var|void)\b"), "\x1b[38;2;30;200;50m"), //kw data types
 			(new(@"\b(alias|as|case|catch|checked|default|do|dynamic|else|finally|for|fixed|foreach|goto"
 				+@"|if|is|lock|new|null|return|switch|throw|try|unchecked|while|abstract|async|class|const"
 				+@"|delegate|enum|event|explicit|extern|get|implicit|in|internal|interface|namespace"
 				+@"|operator|out|override|params|partial|private|protected|public|readonly|ref|sealed|set"
 				+@"|sizeof|stackalloc|static|struct|typeof|unsafe|using|value|virtual|volatile|yield|from"
-				+@"|where|select|group|info|orderby|join|let|in|on|equals|by|ascending|descending)\b"), "\x1b[38;2;30;180;180m"),
-			(new(@"\b(true|false)\b"), "\x1b[38;2;120;255;255m\x1b[49m"),
-			(new(@"\b(break|continue)\b"), "\x1b[38;2;255;50;50m\x1b[49m"),
-			(new(@"[+\-*<=>?:!~%&|]"), "\x1b[38;2;200;20;30m"),
-			(new(@"\b(0|[1-9][0-9._]+|0x[A-Fa-f0-9_]+|0b[01_]+|0[0-7]+)\b"), "\x1b[38;2;35;50;200m\x1b[49m"),
-			(new("^.*?(?:(\".*?\").*?)+$"), "\x1b[38;2;160;130;30m\x1b[49m"),
+				+@"|where|select|group|info|orderby|join|let|in|on|equals|by|ascending|descending)\b"), "\x1b[38;2;30;180;180m"), //keywords
+			(new(@"\b(true|false)\b"), "\x1b[38;2;120;255;255m\x1b[49m"), //bool values
+			(new(@"\b(break|continue)\b"), "\x1b[38;2;255;50;50m\x1b[49m"), //switch statement ends
+			(new(@"[+\-*<=>?:!~%&|]"), "\x1b[38;2;200;20;30m"), //operators
+			(new(@"\b(0|[1-9][0-9._]+|0x[A-Fa-f0-9_]+|0b[01_]+|0[0-7]+)\b"), "\x1b[38;2;35;50;200m\x1b[49m"), //numbers
+			(new("^.*?(?:(\".*?\").*?)+$"), "\x1b[38;2;160;130;30m\x1b[49m"), //
 			(new(@"/{2}.*$"), "\x1b[38;2;128;128;128m\x1b[49m"),
 			(new(@"\t "), "\x1b[41m\x1b[39m"),
 			(new(@"(TODO:?)"), "\x1b[37m\x1b[48;2;30;180;180m"),
-			(new(@" +$"), "\x1b[42m\x1b[39m")
+			(new(@" +$"), "\x1b[42m\x1b[39m"),
+			(new(@"/\*[^*]*(\*(?!/)[^*]*)*$"), "\x1b[38;2;128;128;128m\x1b[49m"),//help i don't understand regex
+			(new(@"^.*\*/+$"), "\x1b[38;2;128;128;128m\x1b[49m"),
+			(new(@"^.*?(?:(/\*.*?\*/).*?)"),"\x1b[38;2;168;168;168m\x1b[49m"),
 		]), tab_count: 3);
     
     try {
@@ -65,9 +68,10 @@ public class Program {
 	static void Display(Rules rules, List<string> contents, int window, int cursorline, int cursorcol) {
 		string write = "\x1b[H\x1b[3J";
 		int lnlen = (int)Math.Log10((double)contents.Count) + 1;
+		bool commentFlag = false;
+		bool startComment=false;
 		for (int line = window; line < Math.Min(window + Console.WindowHeight - rules.Margin, contents.Count); line++) {
 			string s = contents[line];
-
 			List<(int, string?)> actions = new();
 			foreach (var (r, c) in rules.Colors) {
 				var matches = r.Matches(s);
