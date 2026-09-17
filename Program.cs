@@ -3,6 +3,8 @@ using System.Text.RegularExpressions;
 namespace Mille;
 
 public class Program {
+	static string Msg = "";
+
 	static void Main(string[] args) {
 		Rules rules = new(colors: new ([
 			(new(@"\b(bool|byte|sbyte|char|decimal|double|float|IntPtr|int|uint|long|ulong|object|short|ushort|string|base|this|var|void)\b"), "\x1b[38;2;30;200;50m"),
@@ -163,8 +165,7 @@ public class Program {
 					if (act == null) {
 						fmt.Pop();
 						s1 += fmt.Peek();
-					}
-					else {
+					} else {
 						fmt.Push(act);
 						s1 += act;
 					}
@@ -176,6 +177,7 @@ public class Program {
 
 			write += "\x1b[7m" + line.ToString().PadRight(lnlen) + "\x1b[27m " + s + "\x1b[0K\n";
 		}
+		if (Program.Msg.Length != 0) write += "\x1b[0m                \x1b[7m " + Program.Msg + " \x1b[0m\x1b[J";
 		int tabs_before_cursor = contents[cursorline].Remove(cursorcol).Count(c => c == '\t');
 		write += "\x1b[J\x1b[0m\x1b[" + (cursorline-window+1).ToString() + ";" + (cursorcol+lnlen+2 + (rules.TabCount-1)*tabs_before_cursor).ToString() + "H";
 		Console.CursorVisible = false;
@@ -281,12 +283,12 @@ public class Program {
 					int saved_col = col;
 					int saved_true_col = true_col;
 					int saved_line = line;
-					if (col >= contents[line].Length) goto Err;
+					if (col >= contents[line].Length) Message("Not A Bracket"); goto Err;
 					bool forward = true;
 					int ind = Array.IndexOf(rules.Brackets.Item1, contents[line][col]);
 					if (ind == -1) {
 						ind = Array.IndexOf(rules.Brackets.Item2, contents[line][col]);
-						if (ind == -1) goto Err;
+						if (ind == -1) Message("Not A Bracket"); goto Err;
 						forward = false;
 					}
 					char search = (forward ? rules.Brackets.Item2 : rules.Brackets.Item1)[ind];
@@ -298,7 +300,7 @@ public class Program {
 						if (contents[line][col] == search) depth--;
 						if (contents[line][col] == opp) depth++;
 					} while (depth != -1 && (forward ? MoveRight(contents, ref line, ref col) : MoveLeft(contents, ref line, ref col)));
-					if (col == contents[line].Length || contents[line][col] != search) goto Err;
+					if (col == contents[line].Length || contents[line][col] != search) Message("Paren Unmatched"); goto Err;
 					break;
 					Err:
 						line = saved_line;
@@ -308,10 +310,29 @@ public class Program {
 						break;
 				case ConsoleKey.S: Save(contents, expath); break;
 				case ConsoleKey.Q: Exit(); break;
-				default: Console.Write("\a"); break;
+				default: Message("Unrecognized Shortcut: `Ctrl-" + key.Key + "`"); Console.Write("\a"); break;
+			} break;
+			case ConsoleModifiers.Alt: switch (key.Key) {
+				default: Message("Unrecognized Shortcut: `Alt-" + key.Key + "`"); Console.Write("\a"); break;
+			} break;
+			case ConsoleModifiers.Alt | ConsoleModifiers.Control: switch (key.Key) {
+				default: Message("Unrecognized Shortcut: `Ctrl-Alt-" + key.Key + "`"); Console.Write("\a"); break;
+			} break;
+			case ConsoleModifiers.Control | ConsoleModifiers.Shift: switch (key.Key) {
+				default: Message("Unrecognized Shortcut: `Ctrl-Shift-" + key.Key + "`"); Console.Write("\a"); break;
+			} break;
+			case ConsoleModifiers.Alt | ConsoleModifiers.Shift: switch (key.Key) {
+				default: Message("Unrecognized Shortcut: `Alt-Shift-" + key.Key + "`"); Console.Write("\a"); break;
+			} break;
+			case ConsoleModifiers.Control | ConsoleModifiers.Alt | ConsoleModifiers.Shift: switch (key.Key) {
+				default: Message("Unrecognized Shortcut: `Ctrl-Alt-Shift-" + key.Key + "`"); Console.Write("\a"); break;
 			} break;
 			default: Console.Write("\a"); break; // TODO: finish keyboard shortcuts
 		}
+	}
+
+	static void Message(string msg) {
+		Program.Msg = msg;
 	}
 
 	static bool MoveLeft(List<string> contents, ref int line, ref int col) {
