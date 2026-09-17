@@ -38,7 +38,7 @@ public class Program {
 				Console.WriteLine("  --config           Open the YAML config\n");
 				Console.WriteLine("Keybinds:");
 				Console.WriteLine("  [esc]              Save and exit the current editor");
-				Console.WriteLine("  [cntrl-b]          Move cursor to matching bracket");
+				Console.WriteLine("  [ctrl-b]          Move cursor to matching bracket");
 				return;
 			}
 
