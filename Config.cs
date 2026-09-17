@@ -97,6 +97,7 @@ rules:
     - pattern: ' +$'
         color: 'Green'
 ";
+        defaultTemplate = defaultTemplate.Replace("\r\n", "\n");
         defaultTemplate = Regex.Replace(defaultTemplate, "(?m)^\\s+rules:", "rules:");
         defaultTemplate = Regex.Replace(defaultTemplate, "(?m)^\\s+- pattern:", "  - pattern:");
         defaultTemplate = Regex.Replace(defaultTemplate, "(?m)^\\s+color:", "    color:");
