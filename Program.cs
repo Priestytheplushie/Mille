@@ -239,7 +239,7 @@ public class Program {
 					} else contents[line] = contents[line][..col] + contents[line][(col+1)..];
 					true_col = col;
 					break;
-				case ConsoleKey.Escape: Exit(contents, expath); break;
+				case ConsoleKey.Escape: Save(contents, expath); Environment.Exit(0);
 				default:
 					contents[line] = contents[line].Insert(col, ""+key.KeyChar);
 					col++; true_col = col; break;
@@ -294,6 +294,8 @@ public class Program {
 						col = saved_col;
 						Console.Write("\a");
 						break;
+				case ConsoleKey.S: Save(contents, expath); break;
+				case ConsoleKey.Escape: Environment.Exit(0);
 				default: Console.Write("\a"); break;
 			} break;
 			default: Console.Write("\a"); break; // TODO: finish keyboard shortcuts
@@ -334,10 +336,9 @@ public class Program {
 		}
 	}
 
-	static void Exit(List<string> lines, string fp) {
+	static void Save(List<string> lines, string fp) {
 		File.WriteAllText(fp, string.Join(Environment.NewLine, lines));
 		Console.Write("\x1b[2J\x1b[H\x1b[3J");
-		Environment.Exit(0);
 	}
 }
 
