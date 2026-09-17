@@ -33,7 +33,6 @@ public class Program {
 				Console.WriteLine("  Open a file                     mille <filepath>");
 				Console.WriteLine("  Open with explicit config       mille <filepath> --language:<lang>");
 				Console.WriteLine("  Edit language rules             mille --config --language:<lang>");
-				Console.WriteLine("  Edit general configuration      mille --config\n");
 				Console.WriteLine("Flags:");
 				Console.WriteLine("  --language:<lang>  Set syntax highlighting rules");
 				Console.WriteLine("  --config           Open the YAML config\n");
@@ -91,12 +90,6 @@ public class Program {
 			}
 			if (!isConfig && selectedConfig != null) {
 				rules = Config.LoadRulesForLanguage(selectedConfig, rules);
-			}
-
-			if (isConfig && selectedConfig == null) {
-				Console.WriteLine("Config request passed");
-				// TODO: Handle general configuration
-				return;
 			}
 
 			string path = args[0];
