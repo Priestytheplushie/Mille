@@ -6,5 +6,3 @@ This branch contains all of the docuemntation for the `Mille` text editor as wel
 The `docs/` foldder contains documentation and guides
 
 The `school-docs` folder contains boilerplate files required for the school rubric.
-
-This is a work in progress and will be updated frequently for now 
