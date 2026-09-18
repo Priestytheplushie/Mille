@@ -12,5 +12,7 @@ Programmers that don’t know lisp and want a terminal text editor which has eas
 - Syntax highlighting with regex (customizable) 
 - keybinds 
 - Line numbers
-- Multiple editor file buffers with `Alt-<` or `Alt->`
-- Keybind display at the bottom 
+- Configuration Files
+- Language detection
+- ~~Multiple editor file buffers with `Alt-<` or `Alt->`~~
+- ~~Keybind display at the bottom~~
