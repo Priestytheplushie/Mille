@@ -53,6 +53,7 @@ public class Program {
 				Console.WriteLine("  [ctrl-q]           Exit without saving");
 				Console.WriteLine("  [ctrl-b]           Move cursor to matching bracket");
 				Console.WriteLine("  [ctrl-backspace]   Delete entire word");
+				Console.WriteLine("  [ctrl-del]         Delete entire word");
 				Console.WriteLine("  [ctrl-k]           Cut line");
 				Console.WriteLine("  [ctrl-u]           Paste line");
 				Console.WriteLine("  [ctrl-f]           Find next instance forward");
