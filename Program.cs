@@ -454,7 +454,7 @@ public class Program {
 		}
 	}
 
-	static void Message(string msg) {
+	public static void Message(string msg) {
 		Program.Msg = msg;
 	}
 
