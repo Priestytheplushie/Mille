@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Reflection;
 
 namespace Mille;
 
@@ -7,6 +8,9 @@ public class Program {
 	static string? cutbuf = null;
 
 	static void Main(string[] args) {
+		string version = Assembly.GetExecutingAssembly()
+			.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+			.InformationalVersion ?? "1.0.0";
 		Rules rules = new(colors: new ([
 			(new(@"\b(bool|byte|sbyte|char|decimal|double|float|IntPtr|int|uint|long|ulong|object|short|ushort|string|base|this|var|void)\b"), "\x1b[38;2;30;200;50m"),
 			(new(@"\b(alias|as|case|catch|checked|default|do|dynamic|else|finally|for|fixed|foreach|goto"
@@ -28,7 +32,7 @@ public class Program {
 
 		try {
 			if (args.Length == 0 || args[0] == "--help") {
-				Console.WriteLine("Mille - A C# text editor\n");
+				Console.WriteLine($"Mille v{version} - A C# text editor\n");
 				Console.WriteLine("Usage:");
 				Console.WriteLine("  mille <filepath> [options]");
 				Console.WriteLine("  mille --config [options]\n");
@@ -50,6 +54,10 @@ public class Program {
 				Console.WriteLine("  [ctrl-f]           Find other instances forward");
 				Console.WriteLine("  [alt-f]            Find other instances backwards");
 				Console.WriteLine("  [ctrl-w]           Where query, displays location in file");
+				return;
+			}
+			if (args.Length > 0 && (args[0] == "--version" || args[0] == "-v")) {
+				Console.WriteLine($"Mille v{version}");
 				return;
 			}
 
