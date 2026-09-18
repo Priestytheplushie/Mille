@@ -45,7 +45,7 @@ public static class Config {
             Program.Message($"Invalid config (Line {ex.Start.Line}): Using defaults");
             return defaultRules;
         }
-        catch (Exception ex) {
+        catch (Exception) {
             Program.Message("Failed to load config: Using defaults");
             return defaultRules;
         }
@@ -122,6 +122,10 @@ rules:
 
         return extension switch {
             "cs" => "csharp",
+            "cpp" or "cxx" or "c++" or "cp" or "cc" or
+            "hpp" or "hxx" or "h++" or "hp" or "hh" => "c++",
+            "c" or "h" => "c",
+            "rkt" or "lisp" or "ls" or "l" or "cl" => "lisp",
             "js" => "javascript",
             "ts" => "typescript",
             "py" => "python",
@@ -131,7 +135,10 @@ rules:
             "css" => "css",
             "json" => "json",
             "yaml" or "yml" => "yaml",
-            _ => extension 
+            "asm" => "assembly",
+            "hs" => "haskell",
+            "st" => "smalltalk",
+            _ => extension
         };
     }
 }

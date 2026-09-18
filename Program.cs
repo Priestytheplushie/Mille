@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Reflection;
 
 namespace Mille;
 
@@ -7,6 +8,9 @@ public class Program {
 	static string? cutbuf = null;
 
 	static void Main(string[] args) {
+		string version = Assembly.GetExecutingAssembly()
+			.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+			.InformationalVersion ?? "1.0.0";
 		Rules rules = new(colors: new ([
 			(new(@"\b(bool|byte|sbyte|char|decimal|double|float|IntPtr|int|uint|long|ulong|object|short|ushort|string|base|this|var|void)\b"), "\x1b[38;2;30;200;50m"),
 			(new(@"\b(alias|as|case|catch|checked|default|do|dynamic|else|finally|for|fixed|foreach|goto"
@@ -27,29 +31,37 @@ public class Program {
 		]), tab_count: 3);
 
 		try {
-			if (args.Length == 0 || args[0] == "--help") {
-				Console.WriteLine("Mille - A C# text editor\n");
+			if (args.Length == 0 || args[0] == "--help" || args[0] == "-h") {
+				Console.WriteLine($"Mille v{version} - A C# text editor\n");
 				Console.WriteLine("Usage:");
 				Console.WriteLine("  mille <filepath> [options]");
-				Console.WriteLine("  mille --config [options]\n");
+				Console.WriteLine("  mille [command]\n");
 				Console.WriteLine("Examples:");
-				Console.WriteLine("  Open a file                     mille <filepath>");
-				Console.WriteLine("  Open with explicit config       mille <filepath> --language:<lang>");
-				Console.WriteLine("  Edit language rules             mille --config --language:<lang>");
+				Console.WriteLine("  mille <filepath>                      Open or create a file");
+				Console.WriteLine("  mille <filepath> --language:<lang>    Open file with explicit syntax rules\n");
+				Console.WriteLine("Configuration:");
+				Console.WriteLine("  mille --language                      List all installed language configs");
+				Console.WriteLine("  mille --language:<lang>               Inspect active regex rules & colors for a language");
+				Console.WriteLine("  mille --config --language:<lang>      Open/edit the YAML config for a language\n");
 				Console.WriteLine("Flags:");
-				Console.WriteLine("  --language:<lang>  Set syntax highlighting rules");
-				Console.WriteLine("  --config           Open the YAML config\n");
+				Console.WriteLine("  -v, --version                         Check current Mille version");
+				Console.WriteLine("  -h, --help                            Show help and usage options\n");
 				Console.WriteLine("Keybinds:");
 				Console.WriteLine("  [esc]              Save and exit the current editor");
-				Console.WriteLine("  [ctrl-b]           Move cursor to matching bracket");
-				Console.WriteLine("  [ctrl-backspace]   Delete entire word");
 				Console.WriteLine("  [ctrl-s]           Save current file");
 				Console.WriteLine("  [ctrl-q]           Exit without saving");
-				Console.WriteLine("  [ctrl-k]           Line cut");
-				Console.WriteLine("  [ctrl-u]           Line paste");
-				Console.WriteLine("  [ctrl-f]           Find other instances forward");
-				Console.WriteLine("  [alt-f]            Find other instances backwards");
-				Console.WriteLine("  [ctrl-w]           Where query, displays location in file");
+				Console.WriteLine("  [ctrl-b]           Move cursor to matching bracket");
+				Console.WriteLine("  [ctrl-backspace]   Delete entire word");
+				Console.WriteLine("  [ctrl-del]         Delete entire word");
+				Console.WriteLine("  [ctrl-k]           Cut line");
+				Console.WriteLine("  [ctrl-u]           Paste line");
+				Console.WriteLine("  [ctrl-f]           Find next instance forward");
+				Console.WriteLine("  [alt-f]            Find previous instance backward");
+				Console.WriteLine("  [ctrl-w]           Display current location in file");
+				return;
+			}
+			if (args.Length > 0 && (args[0] == "--version" || args[0] == "-v")) {
+				Console.WriteLine($"Mille v{version}");
 				return;
 			}
 
@@ -67,10 +79,46 @@ public class Program {
 					if (i + 1 < args.Length && !args[i + 1].StartsWith("--")) {
 						selectedConfig = args[++i];
 					} else {
-						Console.WriteLine("usage: mille --language:<language>");
-						return;
+						selectedConfig = string.Empty;
 					}
 				}
+			}
+
+			if (!isConfig && string.Equals(selectedConfig, "", StringComparison.OrdinalIgnoreCase)) {
+				string configDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "mille", "languages");
+
+				Console.WriteLine("Configured languages:");
+				if (Directory.Exists(configDir)) {
+					var files = Directory.GetFiles(configDir, "*.yaml")
+						.Concat(Directory.GetFiles(configDir, "*.yml"));
+
+					bool foundAny = false;
+					foreach (var file in files) {
+						string langName = Path.GetFileNameWithoutExtension(file);
+
+						if (!string.IsNullOrWhiteSpace(langName)) {
+							Console.WriteLine($"  - {langName}");
+							foundAny = true;
+						}
+					}
+
+					if (!foundAny) {
+						Console.WriteLine("  (No custom language configs found)");
+					}
+				} else {
+					Console.WriteLine("  (No custom language configs found)");
+				}
+				return;
+			}
+
+			if (!isConfig && selectedConfig != null) {
+				Rules loadedRules = Config.LoadRulesForLanguage(selectedConfig, rules);
+				Console.WriteLine($"Configuration for '{selectedConfig}':\n");
+				foreach (var (regex, color) in loadedRules.Colors) {
+					Console.WriteLine($"  Pattern: {regex}");
+					Console.WriteLine($"  Color:   {color}████\x1b[0m ({color}Sample Text\x1b[0m)\n");
+				}
+				return;
 			}
 
 			if (isConfig && selectedConfig != null) {
@@ -103,6 +151,13 @@ public class Program {
 			if (!isConfig && selectedConfig != null) {
 				rules = Config.LoadRulesForLanguage(selectedConfig, rules);
 			}
+
+			if (isConfig && selectedConfig == null) {
+				Console.WriteLine("Error: Please specify a language to configure.");
+				Console.WriteLine("Usage: mille --config --language:<lang>\n");
+				return;
+			}
+
 
 			string path = args[0];
 			if (selectedConfig == null && !string.IsNullOrEmpty(path)) {
