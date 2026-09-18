@@ -1,0 +1,53 @@
+name: Build Mille
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: Build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+            artifact_name: cli-app-linux-x64
+          - os: windows-latest
+            target: win-x64
+            artifact_name: cli-app-win-x64
+          - os: macos-latest
+            target: osx-x64
+            artifact_name: cli-app-osx-x64
+          - os: macos-latest
+            target: osx-arm64
+            artifact_name: cli-app-osx-arm64
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Publish Single File Executable
+      run: >
+        dotnet publish 
+        --configuration Release 
+        --runtime ${{ matrix.target }} 
+        --self-contained true 
+        -p:PublishSingleFile=true 
+        -p:PublishReadyToRun=true 
+        --output ./publish
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: ./publish/
