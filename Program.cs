@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using System.Reflection;
-using System.Drawing;
 
 namespace Mille;
 
@@ -80,9 +79,36 @@ public class Program {
 					if (i + 1 < args.Length && !args[i + 1].StartsWith("--")) {
 						selectedConfig = args[++i];
 					} else {
-						return;
+						selectedConfig = string.Empty;
 					}
 				}
+			}
+
+			if (!isConfig && string.Equals(selectedConfig, "", StringComparison.OrdinalIgnoreCase)) {
+				string configDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "mille", "languages");
+
+				Console.WriteLine("Configured languages:");
+				if (Directory.Exists(configDir)) {
+					var files = Directory.GetFiles(configDir, "*.yaml")
+						.Concat(Directory.GetFiles(configDir, "*.yml"));
+
+					bool foundAny = false;
+					foreach (var file in files) {
+						string langName = Path.GetFileNameWithoutExtension(file);
+
+						if (!string.IsNullOrWhiteSpace(langName)) {
+							Console.WriteLine($"  - {langName}");
+							foundAny = true;
+						}
+					}
+
+					if (!foundAny) {
+						Console.WriteLine("  (No custom language configs found)");
+					}
+				} else {
+					Console.WriteLine("  (No custom language configs found)");
+				}
+				return;
 			}
 
 			if (!isConfig && selectedConfig != null) {
@@ -132,32 +158,6 @@ public class Program {
 				return;
 			}
 
-			if (!isConfig && string.Equals(selectedConfig, "", StringComparison.OrdinalIgnoreCase)) {
-				string configDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "mille", "languages");
-				
-				Console.WriteLine("Configured languages:");
-				if (Directory.Exists(configDir)) {
-					var files = Directory.GetFiles(configDir, "*.yaml")
-						.Concat(Directory.GetFiles(configDir, "*.yml"));
-
-					bool foundAny = false;
-					foreach (var file in files) {
-						string langName = Path.GetFileNameWithoutExtension(file);
-						
-						if (!string.IsNullOrWhiteSpace(langName)) {
-							Console.WriteLine($"  - {langName}");
-							foundAny = true;
-						}
-					}
-
-					if (!foundAny) {
-						Console.WriteLine("  (No custom language configs found)");
-					}
-				} else {
-					Console.WriteLine("  (No custom language configs found)");
-				}
-				return;
-			}
 
 			string path = args[0];
 			if (selectedConfig == null && !string.IsNullOrEmpty(path)) {

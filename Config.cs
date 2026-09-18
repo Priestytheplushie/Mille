@@ -45,7 +45,7 @@ public static class Config {
             Program.Message($"Invalid config (Line {ex.Start.Line}): Using defaults");
             return defaultRules;
         }
-        catch (Exception ex) {
+        catch (Exception) {
             Program.Message("Failed to load config: Using defaults");
             return defaultRules;
         }
