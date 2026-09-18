@@ -20,11 +20,6 @@ Tasks:
 - Docuemntation writing 
 - Progress tracking
 
-**Developer?**: SamLu-28
-
-Tasks:
-- Code features?
->Hasn't done anything yet. Subject for removal... 
 
 ## Contributions 
 Enderslayer666
