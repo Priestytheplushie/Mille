@@ -41,7 +41,15 @@ public class Program {
 				Console.WriteLine("  --config           Open the YAML config\n");
 				Console.WriteLine("Keybinds:");
 				Console.WriteLine("  [esc]              Save and exit the current editor");
-				Console.WriteLine("  [ctrl-b]          Move cursor to matching bracket");
+				Console.WriteLine("  [ctrl-b]           Move cursor to matching bracket");
+				Console.WriteLine("  [ctrl-backspace]   Delete entire word");
+				Console.WriteLine("  [ctrl-s]           Save current file");
+				Console.WriteLine("  [ctrl-q]           Exit without saving");
+				Console.WriteLine("  [ctrl-k]           Line cut");
+				Console.WriteLine("  [ctrl-u]           Line paste");
+				Console.WriteLine("  [ctrl-f]           Find other instances forward");
+				Console.WriteLine("  [alt-f]            Find other instances backwards");
+				Console.WriteLine("  [ctrl-w]           Where query, displays location in file");
 				return;
 			}
 
