@@ -1,17 +1,9 @@
 using System.Text.RegularExpressions;
+using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
 namespace Mille;
-
-/*
-Example YML Format
-rules:
-  - pattern: '\b(class|struct)\b'
-    color: 'BrightCyan'
-  - pattern: '#[A-Fa-f0-9]{6}'
-    color: '#ff00f2'
-*/
 
 public class LanguageConfig {
     public List<HighlightRuleConfig> Rules { get; set; } = new();
@@ -40,12 +32,23 @@ public static class Config {
 
         string yamlContent = File.ReadAllText(filePath);
 
-        IDeserializer deserializer = new DeserializerBuilder()
-            .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .IgnoreUnmatchedProperties()
-            .Build();
+        LanguageConfig config;
+        try {
+            IDeserializer deserializer = new DeserializerBuilder()
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                .IgnoreUnmatchedProperties()
+                .Build();
 
-        LanguageConfig config = deserializer.Deserialize<LanguageConfig>(yamlContent) ?? new LanguageConfig();
+            config = deserializer.Deserialize<LanguageConfig>(yamlContent) ?? new LanguageConfig();
+        }
+        catch (YamlException ex) {
+            Program.Message($"Invalid config (Line {ex.Start.Line}): Using defaults");
+            return defaultRules;
+        }
+        catch (Exception ex) {
+            Program.Message("Failed to load config: Using defaults");
+            return defaultRules;
+        }
 
         List<(Regex, string)> compiledRules = new List<(Regex, string)>();
 
@@ -56,7 +59,7 @@ public static class Config {
                 compiledRules.Add((new Regex(rule.Pattern), Colors.Resolve(rule.Color)));
             }
             catch (ArgumentException) {
-
+                Program.Message($"Invalid Regex pattern: '{rule.Pattern}'");
             }
         }
 
@@ -70,9 +73,9 @@ public static class Config {
     private static void CreateDefaultConfig(string filePath, string language) {
         string defaultTemplate;
 
-    if (language.ToLowerInvariant() == "csharp") {
-        defaultTemplate = 
-            @"# Syntax rules for " + language + @"
+        if (language.ToLowerInvariant() == "csharp") {
+            defaultTemplate = 
+                @"# Syntax rules for " + language + @"
 rules:
     - pattern: '\b(bool|byte|sbyte|char|decimal|double|float|IntPtr|int|uint|long|ulong|object|short|ushort|string|base|this|var|void)\b'
         color: '#1EC832'
@@ -97,22 +100,22 @@ rules:
     - pattern: ' +$'
         color: 'Green'
 ";
-        defaultTemplate = Regex.Replace(defaultTemplate, "(?m)^\\s+rules:", "rules:");
-        defaultTemplate = Regex.Replace(defaultTemplate, "(?m)^\\s+- pattern:", "  - pattern:");
-        defaultTemplate = Regex.Replace(defaultTemplate, "(?m)^\\s+color:", "    color:");
+            defaultTemplate = Regex.Replace(defaultTemplate, "(?m)^\\s+rules:", "rules:");
+            defaultTemplate = Regex.Replace(defaultTemplate, "(?m)^\\s+- pattern:", "  - pattern:");
+            defaultTemplate = Regex.Replace(defaultTemplate, "(?m)^\\s+color:", "    color:");
+        }
+        else {
+            defaultTemplate = 
+                @"# Syntax rules for " + language + @"
+rules:
+# - pattern: '\b(keyword1|keyword2)\b'
+#   color: 'BrightCyan'
+# - pattern: '#.*$'
+#   color: 'DarkGray'
+";
+        }
+        File.WriteAllText(filePath, defaultTemplate);
     }
-    else {
-        defaultTemplate = 
-            @"# Syntax rules for " + language + @"
-            rules:
-            # - pattern: '\b(keyword1|keyword2)\b'
-            #   color: 'BrightCyan'
-            # - pattern: '#.*$'
-            #   color: 'DarkGray'
-            ";
-    }
-     File.WriteAllText(filePath, defaultTemplate);
-}
 
     public static string DetectLanguageFromPath(string filePath) {
         string extension = Path.GetExtension(filePath).TrimStart('.').ToLowerInvariant();
