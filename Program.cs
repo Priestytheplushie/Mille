@@ -42,7 +42,8 @@ public class Program {
 				Console.WriteLine("  Edit language rules             mille --config --language:<lang>");
 				Console.WriteLine("Flags:");
 				Console.WriteLine("  --language:<lang>  Set syntax highlighting rules");
-				Console.WriteLine("  --config           Open the YAML config\n");
+				Console.WriteLine("  --config           Open the YAML config");
+				Console.WriteLine("  --version          Check the current Mille version\n");
 				Console.WriteLine("Keybinds:");
 				Console.WriteLine("  [esc]              Save and exit the current editor");
 				Console.WriteLine("  [ctrl-b]           Move cursor to matching bracket");
