@@ -40,7 +40,7 @@ public class Program {
 				Console.WriteLine("  Open a file                     mille <filepath>");
 				Console.WriteLine("  Open with explicit config       mille <filepath> --language:<lang>");
 				Console.WriteLine("  Edit language rules             mille --config --language:<lang>");
-				Console.WriteLine("Flags:");
+				Console.WriteLine("\nFlags:");
 				Console.WriteLine("  --language:<lang>  Set syntax highlighting rules");
 				Console.WriteLine("  --config           Open the YAML config");
 				Console.WriteLine("  --version          Check the current Mille version\n");
