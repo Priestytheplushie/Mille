@@ -19,7 +19,7 @@ While we didn't have very many technical challenges, we definitely had team chal
 Another team challenge was getting GitHub setup, because it had some weird quirks like branches being **outdated** constantly, and loose commits like `fix typo` being commited when they probably shouldn't because they hold no real value. Going for a `Squash and Merge` workflow was something we had to learn about later on. 
 
 ## Alternative Languages
-While `C#` didn't cause us many development issues, other programming languages like `Python` could have been a better fit: With C# we decided to avoid external libraries, usiong only a YAML library, but if we had used `Python` we could use their rich ecosystem, with things like `rich` or `textual`. 
+While `C#` didn't cause us many development issues, other programming languages like `Python` could have been a better fit: With C# we decided to avoid external libraries, using only a YAML library, but if we had used `Python` we could use their rich ecosystem, with things like `rich` or `textual`. 
 
 An example of this is manually coding the `Display()` method and using ANSI codes to manipulate the terminal, but using Python with `textual` we could just create a `TextArea` widget which has most functionality built in. 
 
