@@ -20,6 +20,7 @@ dotnet pack -c Release
 # Install globally
 dotnet tool install --global --add-source ./bin/Release Mille
 ```
+Or check out the [Releases](https://github.com/Priestytheplushie/Mille/releases) tab for precompiled builds for all platforms.
 ### Usage 
 Open a file and auto-detect language:
 
