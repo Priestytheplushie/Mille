@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+sing System.Text.RegularExpressions;
 using System.Reflection;
 
 namespace Mille;
@@ -37,7 +37,7 @@ public class Program {
 				Console.WriteLine("  mille <filepath> [options]");
 				Console.WriteLine("  mille [command]\n");
 				Console.WriteLine("Examples:");
-				Console.WriteLine("  mille <filepath>                      Open or create a file");
+				Console.WriteLine("  mille <filepath> [filepath ...]       Open or create one or more files");
 				Console.WriteLine("  mille <filepath> --language:<lang>    Open file with explicit syntax rules\n");
 				Console.WriteLine("Configuration:");
 				Console.WriteLine("  mille --language                      List all installed language configs");
@@ -57,6 +57,7 @@ public class Program {
 				Console.WriteLine("  [ctrl-u]           Paste line");
 				Console.WriteLine("  [ctrl-f]           Find next instance forward");
 				Console.WriteLine("  [alt-f]            Find previous instance backward");
+				Console.WriteLine("  [alt-,/.]          Switch between open files (Alt+< / Alt+> also work)");
 				Console.WriteLine("  [ctrl-w]           Display current location in file");
 				return;
 			}
@@ -67,6 +68,7 @@ public class Program {
 
 			bool isConfig = false;
 			string? selectedConfig = null;
+			List<string> filePaths = new();
 
 			for (int i = 0; i < args.Length; i++) {
 				if (string.Equals(args[i], "--config", StringComparison.OrdinalIgnoreCase)) {
@@ -82,9 +84,12 @@ public class Program {
 						selectedConfig = string.Empty;
 					}
 				}
+				else if (!args[i].StartsWith("--", StringComparison.Ordinal)) {
+					filePaths.Add(args[i]);
+				}
 			}
 
-			if (!isConfig && string.Equals(selectedConfig, "", StringComparison.OrdinalIgnoreCase)) {
+			if (!isConfig && string.Equals(selectedConfig, "", StringComparison.OrdinalIgnoreCase) && filePaths.Count == 0) {
 				string configDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "mille", "languages");
 
 				Console.WriteLine("Configured languages:");
@@ -111,7 +116,7 @@ public class Program {
 				return;
 			}
 
-			if (!isConfig && selectedConfig != null) {
+			if (!isConfig && selectedConfig != null && filePaths.Count == 0) {
 				Rules loadedRules = Config.LoadRulesForLanguage(selectedConfig, rules);
 				Console.WriteLine($"Configuration for '{selectedConfig}':\n");
 				foreach (var (regex, color) in loadedRules.Colors) {
@@ -138,7 +143,8 @@ public class Program {
 
 				while (true) {
 					Display(rules, configContents, configWindow, configLine, configCol);
-					ProcessInput(rules, ref configContents, ref configLine, ref configCol, ref configTrueCol, ref configWindow, configPath);
+					int configBufferIndex = 0;
+					ProcessInput(rules, ref configContents, ref configLine, ref configCol, ref configTrueCol, ref configWindow, configPath, null, ref configBufferIndex);
 					
 					if (configLine < configWindow) {
 						configWindow = configLine;
@@ -148,49 +154,49 @@ public class Program {
 					}
 				}
 			}
-			if (!isConfig && selectedConfig != null) {
-				rules = Config.LoadRulesForLanguage(selectedConfig, rules);
-			}
-
 			if (isConfig && selectedConfig == null) {
 				Console.WriteLine("Error: Please specify a language to configure.");
 				Console.WriteLine("Usage: mille --config --language:<lang>\n");
 				return;
 			}
 
-
-			string path = args[0];
-			if (selectedConfig == null && !string.IsNullOrEmpty(path)) {
-				selectedConfig = Config.DetectLanguageFromPath(path);
+			if (filePaths.Count == 0) {
+				Console.Error.WriteLine("Error: Please specify a file to open.");
+				return;
 			}
 
-			// Load custom YAML rules if available, or keep default fallback
-			if (selectedConfig != null) {
-				rules = Config.LoadRulesForLanguage(selectedConfig, rules);
-			}
-			string content;
-			if (File.Exists(path)) {
-				content = File.ReadAllText(path);
-			}
-			else {
+			List<EditorBuffer> buffers = new();
+			foreach (string path in filePaths) {
 				if (Directory.Exists(path)) {
-					Console.Error.WriteLine("The specified path is a directory, not a file.");
+					Console.Error.WriteLine($"The specified path is a directory, not a file: {path}");
 					return;
 				}
-				content = string.Empty;
+				if (buffers.Any(b => Path.GetFullPath(b.Path) == Path.GetFullPath(path))) continue;
+				string language = selectedConfig ?? Config.DetectLanguageFromPath(path);
+				Rules bufferRules = Config.LoadRulesForLanguage(language, rules);
+				string content = File.Exists(path) ? File.ReadAllText(path) : string.Empty;
+				buffers.Add(new EditorBuffer(path, bufferRules, new List<string>(content.Split(Environment.NewLine))));
 			}
 
-			List<string> contents = new(content.Split(Environment.NewLine));
-			int line = 0;
-			int col = 0;
-			int window = 0;
-			int true_col = 0;
+			int activeBufferIndex = 0;
+			List<string> contents = buffers[0].Contents;
+			int line = buffers[0].Line;
+			int col = buffers[0].Col;
+			int window = buffers[0].Window;
+			int true_col = buffers[0].TrueCol;
 
 			while (true) {
-				Display(rules, contents, window, line, col);
-				ProcessInput(rules, ref contents, ref line, ref col, ref true_col, ref window, args[0]);
+				Display(buffers[activeBufferIndex].Rules, contents, window, line, col);
+				ProcessInput(buffers[activeBufferIndex].Rules, ref contents, ref line, ref col, ref true_col, ref window, buffers[activeBufferIndex].Path, buffers, ref activeBufferIndex);
 				if (line < window) window = line;
-				else if (line > window + Console.WindowHeight - rules.Margin - 1) window = line - Console.WindowHeight + rules.Margin + 1;
+				else if (line > window + Console.WindowHeight - buffers[activeBufferIndex].Rules.Margin - 1) window = line - Console.WindowHeight + buffers[activeBufferIndex].Rules.Margin + 1;
+
+				EditorBuffer activeBuffer = buffers[activeBufferIndex];
+				activeBuffer.Contents = contents;
+				activeBuffer.Line = line;
+				activeBuffer.Col = col;
+				activeBuffer.TrueCol = true_col;
+				activeBuffer.Window = window;
 			}
 		}
 		catch (UnauthorizedAccessException) {
@@ -252,8 +258,13 @@ public class Program {
 		Console.CursorVisible = true;
 	}
 
-	static void ProcessInput(Rules rules, ref List<string> contents, ref int line, ref int col, ref int true_col, ref int window, string expath) {
+	static void ProcessInput(Rules rules, ref List<string> contents, ref int line, ref int col, ref int true_col, ref int window, string expath, List<EditorBuffer>? buffers, ref int activeBufferIndex) {
 		ConsoleKeyInfo key = Console.ReadKey(true);
+		int bufferStep = GetBufferStep(key);
+		if (bufferStep != 0) {
+			SwitchBuffer(bufferStep, buffers, ref activeBufferIndex, ref contents, ref line, ref col, ref true_col, ref window);
+			return;
+		}
 		switch (key.Modifiers) {
 			case ConsoleModifiers.None: case ConsoleModifiers.Shift: switch (key.Key) {
 				case ConsoleKey.Backspace:
@@ -308,7 +319,11 @@ public class Program {
 					} else contents[line] = contents[line][..col] + contents[line][(col+1)..];
 					true_col = col;
 					break;
-				case ConsoleKey.Escape: Save(contents, expath); Exit(); break;
+				case ConsoleKey.Escape:
+					if (buffers is null) Save(contents, expath);
+					else foreach (EditorBuffer buffer in buffers) Save(buffer.Contents, buffer.Path);
+					Exit();
+					break;
 				default:
 					contents[line] = contents[line].Insert(col, ""+key.KeyChar);
 					col++; true_col = col; break;
@@ -375,7 +390,7 @@ public class Program {
 						col = saved_col;
 						Console.Write("\a");
 						break;
-				case ConsoleKey.S: Save(contents, expath); break;
+				case ConsoleKey.S: Save(contents, buffers is null ? expath : buffers[activeBufferIndex].Path); break;
 				case ConsoleKey.Q: Exit(); break;
 				case ConsoleKey.W: Message("Line: " + (line+1) + "/" + contents.Count + ", Column: " + (col+1) + "/" + (contents[line].Length+1)); break;
 				case ConsoleKey.K:
@@ -454,6 +469,38 @@ public class Program {
 		}
 	}
 
+	// Alt+, / Alt+< (-1) and Alt+. / Alt+> (+1). Shift is optional: many terminals drop it or the Alt modifier for these keys.
+	static int GetBufferStep(ConsoleKeyInfo key) {
+		if ((key.Modifiers & ~ConsoleModifiers.Shift) != ConsoleModifiers.Alt) return 0;
+		if (key.Key == ConsoleKey.OemComma || key.KeyChar == '<') return -1;
+		if (key.Key == ConsoleKey.OemPeriod || key.KeyChar == '>') return 1;
+		return 0;
+	}
+
+	static void SwitchBuffer(int step, List<EditorBuffer>? buffers, ref int activeBufferIndex, ref List<string> contents, ref int line, ref int col, ref int true_col, ref int window) {
+		if (buffers is null || buffers.Count < 2) {
+			Message("No other files are open");
+			Console.Write("\a");
+			return;
+		}
+		EditorBuffer currentBuffer = buffers[activeBufferIndex];
+		currentBuffer.Contents = contents;
+		currentBuffer.Line = line;
+		currentBuffer.Col = col;
+		currentBuffer.TrueCol = true_col;
+		currentBuffer.Window = window;
+
+		activeBufferIndex = (activeBufferIndex + step + buffers.Count) % buffers.Count;
+
+		EditorBuffer nextBuffer = buffers[activeBufferIndex];
+		contents = nextBuffer.Contents;
+		line = nextBuffer.Line;
+		col = nextBuffer.Col;
+		true_col = nextBuffer.TrueCol;
+		window = nextBuffer.Window;
+		Message($"File {activeBufferIndex + 1}/{buffers.Count}: {Path.GetFileName(nextBuffer.Path)}");
+	}
+
 	public static void Message(string msg) {
 		Program.Msg = msg;
 	}
@@ -500,6 +547,16 @@ public class Program {
 		Console.Write("\x1b[2J\x1b[H\x1b[3J");
 		Environment.Exit(0);
 	}
+}
+
+internal class EditorBuffer(string path, Rules rules, List<string> contents) {
+	public string Path { get; } = path;
+	public Rules Rules { get; } = rules;
+	public List<string> Contents { get; set; } = contents;
+	public int Line { get; set; }
+	public int Col { get; set; }
+	public int TrueCol { get; set; }
+	public int Window { get; set; }
 }
 
 public class Rules {
