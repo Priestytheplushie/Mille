@@ -1,4 +1,4 @@
-sing System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using System.Reflection;
 
 namespace Mille;
@@ -282,33 +282,33 @@ public class Program {
 					else {
 						contents[line] = contents[line][..(col-1)] + contents[line][col..];
 						col--;
-					} true_col = col; break;
+					} true_col = VisualCol(contents[line], col, rules.TabCount); break;
 				case ConsoleKey.Enter:
 					contents.Insert(line+1, contents[line][col..]);
 					contents[line] = contents[line].Remove(col);
 					line++; col = 0; true_col = 0; break;
 				case ConsoleKey.PageDown:
 					line = Math.Min(line+Console.WindowHeight, contents.Count-1);
-					col = Math.Min(col, contents[line].Length); true_col = col;
+					col = Math.Min(col, contents[line].Length); true_col = VisualCol(contents[line], col, rules.TabCount);
 					window = Math.Min(window+Console.WindowHeight, contents.Count-Console.WindowHeight);
 					break;
 				case ConsoleKey.PageUp:
 					line = Math.Max(line-Console.WindowHeight, 0);
-					col = Math.Min(col, contents[line].Length); true_col = col;
+					col = Math.Min(col, contents[line].Length); true_col = VisualCol(contents[line], col, rules.TabCount);
 					window = Math.Max(window-Console.WindowHeight, 0);
 					break;
-				case ConsoleKey.End: col = contents[line].Length; true_col = col; break;
-				case ConsoleKey.Home: col = 0; true_col = col; break;
+				case ConsoleKey.End: col = contents[line].Length; true_col = VisualCol(contents[line], col, rules.TabCount); break;
+				case ConsoleKey.Home: col = 0; true_col = VisualCol(contents[line], col, rules.TabCount); break;
 				case ConsoleKey.LeftArrow:
 					MoveLeft(contents, ref line, ref col);
-					true_col = col;
+					true_col = VisualCol(contents[line], col, rules.TabCount);
 					break;
 				case ConsoleKey.RightArrow:
 					MoveRight(contents, ref line, ref col);
-					true_col = col;
+					true_col = VisualCol(contents[line], col, rules.TabCount);
 					break;
-				case ConsoleKey.UpArrow: MoveUp(contents, ref line, ref col, true_col); break;
-				case ConsoleKey.DownArrow: MoveDown(contents, ref line, ref col, true_col); break;
+				case ConsoleKey.UpArrow: MoveUp(contents, ref line, ref col, true_col, rules.TabCount); break;
+				case ConsoleKey.DownArrow: MoveDown(contents, ref line, ref col, true_col, rules.TabCount); break;
 				case ConsoleKey.Delete:
 					if (col == contents[line].Length) {
 						if (line < contents.Count-1) {
@@ -317,7 +317,7 @@ public class Program {
 							contents[line] += append;
 						}
 					} else contents[line] = contents[line][..col] + contents[line][(col+1)..];
-					true_col = col;
+					true_col = VisualCol(contents[line], col, rules.TabCount);
 					break;
 				case ConsoleKey.Escape:
 					if (buffers is null) Save(contents, expath);
@@ -326,18 +326,18 @@ public class Program {
 					break;
 				default:
 					contents[line] = contents[line].Insert(col, ""+key.KeyChar);
-					col++; true_col = col; break;
+					col++; true_col = VisualCol(contents[line], col, rules.TabCount); break;
 			} break;
 			case ConsoleModifiers.Control: switch (key.Key) {
 				case ConsoleKey.RightArrow:
 					while (MoveRight(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsLetterOrDigit(contents[line][col])));
 					while (MoveRight(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsLetterOrDigit(contents[line][col])));
-					true_col = col;
+					true_col = VisualCol(contents[line], col, rules.TabCount);
 					break;
 				case ConsoleKey.LeftArrow:
 					while (MoveLeft(contents, ref line, ref col) && (col  == contents[line].Length || Char.IsLetterOrDigit(contents[line][col])));
 					while (MoveLeft(contents, ref line, ref col) && !(col == contents[line].Length || Char.IsLetterOrDigit(contents[line][col])));
-					true_col = col;
+					true_col = VisualCol(contents[line], col, rules.TabCount);
 					break;
 				case ConsoleKey.UpArrow:
 					col = 0;
@@ -397,7 +397,7 @@ public class Program {
 					cutbuf = contents[line];
 					contents.RemoveAt(line);
 					if (line == contents.Count) line--;
-					col = Math.Min(true_col, contents[line].Length);
+					col = ColFromVisual(contents[line], true_col, rules.TabCount);
 					break;
 				case ConsoleKey.U:
 					if (cutbuf is null) { Message("Cutbuffer is Empty"); Console.Write("\a"); break; }
@@ -521,22 +521,40 @@ public class Program {
 		return true;
 	}
 
-	static bool MoveUp(List<string> contents, ref int line, ref int col, int true_col) {
+	static bool MoveUp(List<string> contents, ref int line, ref int col, int true_col, int tab_count = 1) {
 		if (line <= 0) { line = 0; col = 0; return false; }
 		else {
 			line--;
-			col = Math.Min(true_col, contents[line].Length);
+			col = ColFromVisual(contents[line], true_col, tab_count);
 			return true;
 		}
 	}
 
-	static bool MoveDown(List<string> contents, ref int line, ref int col, int true_col) {
+	static bool MoveDown(List<string> contents, ref int line, ref int col, int true_col, int tab_count = 1) {
 		if (line == contents.Count - 1) { col = contents[line].Length; return false; }
 		else {
 			line++;
-			col = Math.Min(true_col, contents[line].Length);
+			col = ColFromVisual(contents[line], true_col, tab_count);
 			return true;
 		}
+	}
+
+	// On-screen column of a character index, with tabs drawn tab_count columns wide.
+	static int VisualCol(string s, int col, int tab_count) {
+		int visual = 0;
+		for (int i = 0; i < col && i < s.Length; i++) visual += s[i] == '\t' ? tab_count : 1;
+		return visual;
+	}
+
+	// Character index nearest to an on-screen column (clamped to the end of the line).
+	static int ColFromVisual(string s, int visual, int tab_count) {
+		int width = 0;
+		for (int i = 0; i < s.Length; i++) {
+			int w = s[i] == '\t' ? tab_count : 1;
+			if (width + w > visual) return i;
+			width += w;
+		}
+		return s.Length;
 	}
 
 	static void Save(List<string> lines, string fp) {
