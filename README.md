@@ -1,6 +1,9 @@
 # Mille 
 A C# text editor using Regular Expressions for syntax highlighting. 
 
+>[!WARNING]
+>**THIS BRANCH IS AI SLOP**: This branch was used as a requirement for a school assignment about testing out AI models, as such any code with the `GENERATED:` prefix has been created fully using AI tools, and should be double checked before using. **You've been warned**! 
+
 <img width="1074" height="640" alt="Screenshot 2026-09-18 at 9 06 30 AM" src="https://github.com/user-attachments/assets/1d139fcf-b66e-4a38-b9d3-2f1fb7bb9dd0" />
 
 ## QuickStart
